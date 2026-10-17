@@ -232,6 +232,8 @@ libqt_plugin_la_SOURCES = \
 	medialibrary/mlrecentmediamodel.hpp \
 	medialibrary/mlrecentvideomodel.cpp \
 	medialibrary/mlrecentvideomodel.hpp \
+	medialibrary/mlrecentaudiomodel.cpp \
+	medialibrary/mlrecentaudiomodel.hpp \
 	medialibrary/mlurlmodel.cpp \
 	medialibrary/mlurlmodel.hpp \
 	medialibrary/mlvideo.cpp \
@@ -467,6 +469,7 @@ nodist_libqt_plugin_la_SOURCES = \
 	medialibrary/mlqmltypes.moc.cpp \
 	medialibrary/mlrecentmediamodel.moc.cpp \
 	medialibrary/mlrecentvideomodel.moc.cpp \
+	medialibrary/mlrecentaudiomodel.moc.cpp \
 	medialibrary/mlurlmodel.moc.cpp \
 	medialibrary/mlvideo.moc.cpp \
 	medialibrary/mlmediamodel.moc.cpp \
@@ -936,6 +939,113 @@ libqt_plugin_la_RES = \
 	pixmaps/menu/volume-high.svg \
 	pixmaps/menu/volume-low.svg \
 	pixmaps/menu/volume-muted.svg \
+	pixmaps/redesign/audio.svg \
+	pixmaps/redesign/bookmark.svg \
+	pixmaps/redesign/chapters.svg \
+	pixmaps/redesign/check.svg \
+	pixmaps/redesign/chevron_down.svg \
+	pixmaps/redesign/chevron_left.svg \
+	pixmaps/redesign/chevron_right.svg \
+	pixmaps/redesign/chevron_up.svg \
+	pixmaps/redesign/close.svg \
+	pixmaps/redesign/computer.svg \
+	pixmaps/redesign/download.svg \
+	pixmaps/redesign/drag.svg \
+	pixmaps/redesign/ellipsis.svg \
+	pixmaps/redesign/eye.svg \
+	pixmaps/redesign/eye_off.svg \
+	pixmaps/redesign/flip.svg \
+	pixmaps/redesign/folder.svg \
+	pixmaps/redesign/fullscreen.svg \
+	pixmaps/redesign/grid.svg \
+	pixmaps/redesign/heart.svg \
+	pixmaps/redesign/home.svg \
+	pixmaps/redesign/info.svg \
+	pixmaps/redesign/keyboard.svg \
+	pixmaps/redesign/layout.svg \
+	pixmaps/redesign/library.svg \
+	pixmaps/redesign/link.svg \
+	pixmaps/redesign/list.svg \
+	pixmaps/redesign/metadata.svg \
+	pixmaps/redesign/minus.svg \
+	pixmaps/redesign/music.svg \
+	pixmaps/redesign/network.svg \
+	pixmaps/redesign/palette.svg \
+	pixmaps/redesign/pencil.svg \
+	pixmaps/redesign/pin.svg \
+	pixmaps/redesign/pip.svg \
+	pixmaps/redesign/play_filled.svg \
+	pixmaps/redesign/playback.svg \
+	pixmaps/redesign/playlists.svg \
+	pixmaps/redesign/plus.svg \
+	pixmaps/redesign/podcast.svg \
+	pixmaps/redesign/queue.svg \
+	pixmaps/redesign/radio.svg \
+	pixmaps/redesign/recent.svg \
+	pixmaps/redesign/repeat.svg \
+	pixmaps/redesign/reverse.svg \
+	pixmaps/redesign/rotate.svg \
+	pixmaps/redesign/search.svg \
+	pixmaps/redesign/settings.svg \
+	pixmaps/redesign/shuffle.svg \
+	pixmaps/redesign/sort.svg \
+	pixmaps/redesign/speed.svg \
+	pixmaps/redesign/subtitles.svg \
+	pixmaps/redesign/timer.svg \
+	pixmaps/redesign/trash.svg \
+	pixmaps/redesign/video.svg \
+	pixmaps/redesign/visualizer.svg \
+	pixmaps/redesign/waveform.svg \
+	pixmaps/redesign/add.svg \
+	pixmaps/redesign/arrow_left.svg \
+	pixmaps/redesign/arrow_right.svg \
+	pixmaps/redesign/artist.svg \
+	pixmaps/redesign/backward_15.svg \
+	pixmaps/redesign/backward_3.svg \
+	pixmaps/redesign/forward_3.svg \
+	pixmaps/redesign/backward_5.svg \
+	pixmaps/redesign/forward_5.svg \
+	pixmaps/redesign/backward_10.svg \
+	pixmaps/redesign/forward_10.svg \
+	pixmaps/redesign/backward_20.svg \
+	pixmaps/redesign/forward_20.svg \
+	pixmaps/redesign/backward_30.svg \
+	pixmaps/redesign/forward_30.svg \
+	pixmaps/redesign/backward_60.svg \
+	pixmaps/redesign/forward_60.svg \
+	pixmaps/redesign/skip_back.svg \
+	pixmaps/redesign/skip_forward.svg \
+	pixmaps/redesign/caret_right.svg \
+	pixmaps/redesign/forward_15.svg \
+	pixmaps/redesign/home_filled.svg \
+	pixmaps/redesign/maximize.svg \
+	pixmaps/redesign/minimize.svg \
+	pixmaps/redesign/more.svg \
+	pixmaps/redesign/music_filled.svg \
+	pixmaps/redesign/next.svg \
+	pixmaps/redesign/pause.svg \
+	pixmaps/redesign/popout.svg \
+	pixmaps/redesign/preferences.svg \
+	pixmaps/redesign/previous.svg \
+	pixmaps/redesign/restore.svg \
+	pixmaps/redesign/sidebar.svg \
+	pixmaps/redesign/sidebar_open.svg \
+	pixmaps/redesign/videos.svg \
+	pixmaps/redesign/videos_filled.svg \
+	pixmaps/redesign/volume.svg \
+	pixmaps/redesign/volume_muted.svg \
+	pixmaps/redesign/capture.svg \
+	pixmaps/redesign/clipboard.svg \
+	pixmaps/redesign/convert.svg \
+	pixmaps/redesign/disc.svg \
+	pixmaps/redesign/file.svg \
+	pixmaps/redesign/folder_open.svg \
+	pixmaps/redesign/profile.svg \
+	pixmaps/redesign/quit.svg \
+	pixmaps/redesign/record.svg \
+	pixmaps/redesign/sliders.svg \
+	pixmaps/redesign/stop.svg \
+	pixmaps/redesign/stream.svg \
 	pixmaps/misc/cone.svg \
 	pixmaps/misc/new_indicator.svg \
 	pixmaps/misc/theme_dark.svg \
@@ -1064,7 +1174,17 @@ libqml_module_maininterface_a_QML = \
 	maininterface/qml/SideNavigationPane.qml \
 	maininterface/qml/SideNavigationDelegate.qml \
 	maininterface/qml/NoMedialibHome.qml \
-	maininterface/qml/OpenFileSplitButton.qml
+	maininterface/qml/OpenFileSplitButton.qml \
+	maininterface/qml/RedesignDialogs.qml \
+	maininterface/qml/OnboardingDialog.qml \
+	maininterface/qml/ThemePreview.qml \
+	maininterface/qml/AccentSwatch.qml \
+	maininterface/qml/SettingsDialog.qml \
+	maininterface/qml/SettingsRow.qml \
+	maininterface/qml/ShortcutsDialog.qml \
+	maininterface/qml/AddSubtitlesDialog.qml \
+	maininterface/qml/NetworkStreamDialog.qml \
+	maininterface/qml/NewPlaylistDialog.qml
 
 if UPDATE_CHECK
 libqml_module_maininterface_a_QML += maininterface/qml/UpdatePane.qml
@@ -1113,13 +1233,16 @@ libqml_module_medialibrary_a_QML = \
 	medialibrary/qml/VideoInfoExpandPanel.qml \
 	medialibrary/qml/VideoListDisplay.qml \
 	medialibrary/qml/VideoGridDisplay.qml \
+	medialibrary/qml/VideoCompactDisplay.qml \
 	medialibrary/qml/MusicAlbumSectionDelegate.qml \
 	medialibrary/qml/MLGlobalShortcuts.qml \
 	medialibrary/qml/Bookmarks.qml \
 	medialibrary/qml/MLContextMenu.qml \
 	medialibrary/qml/MLDragItem.qml \
 	medialibrary/qml/MLTableColumns.qml \
-	medialibrary/qml/ScanProgressBar.qml
+	medialibrary/qml/ScanProgressBar.qml \
+	medialibrary/qml/PlaylistsDisplay.qml \
+	medialibrary/qml/RecentDisplay.qml
 libqml_module_medialibrary_a_Singleton_QML =
 libqml_module_medialibrary_a_SOURCES = $(QML_MODULE_medialibrary_SRC)
 nodist_libqml_module_medialibrary_a_SOURCES = medialibrary/qmlassets.cpp $(QML_MODULE_medialibrary_NODIST_EXTRA)
@@ -1186,9 +1309,30 @@ libqml_module_player_a_QML = \
 	player/qml/TracksPageSpeed.qml \
 	player/qml/TracksPageSubtitle.qml \
 	player/qml/TracksListPage.qml \
+	player/qml/TracksPopup.qml \
 	player/qml/ControlLayout.qml \
 	player/qml/ControlRepeater.qml \
-	player/qml/NavigationBox.qml
+	player/qml/NavigationBox.qml \
+	player/qml/PlayerSidebar.qml \
+	player/qml/SidebarPage.qml \
+	player/qml/SidebarPlayback.qml \
+	player/qml/SidebarVideo.qml \
+	player/qml/SidebarAudio.qml \
+	player/qml/SidebarSubtitles.qml \
+	player/qml/VideoFilterGroup.qml \
+	player/qml/AudioFilterBlock.qml \
+	player/qml/TrackDefaultRows.qml \
+	player/qml/SubtitlePresetPicker.qml \
+	player/qml/CompactLibrary.qml \
+	player/qml/ResumePrompt.qml \
+	player/qml/QueueBookmarks.qml \
+	player/qml/ControlDragSource.qml \
+	player/qml/ControlBarEditor.qml \
+	player/qml/CustomizePlayer.qml \
+	player/qml/LibraryMiniPlayer.qml \
+	player/qml/QueueChapters.qml \
+	player/qml/QuickBookmark.qml \
+	player/qml/VideoContextMenu.qml
 
 libqml_module_player_a_Singleton_QML = \
 	player/qml/PlayerControlbarControls.qml
@@ -1205,6 +1349,7 @@ libqml_module_playercontrols_a_QML = \
 	player/qml/controlbarcontrols/ArtworkInfoWidget.qml \
 	player/qml/controlbarcontrols/AspectRatioWidget.qml \
 	player/qml/controlbarcontrols/AtoBButton.qml \
+	player/qml/controlbarcontrols/AudioTrackButton.qml \
 	player/qml/controlbarcontrols/BackButton.qml \
 	player/qml/controlbarcontrols/BookmarkButton.qml \
 	player/qml/controlbarcontrols/ChapterNextButton.qml \
@@ -1241,9 +1386,11 @@ libqml_module_playercontrols_a_QML = \
 	player/qml/controlbarcontrols/SnapshotButton.qml \
 	player/qml/controlbarcontrols/SpacerWidget.qml \
 	player/qml/controlbarcontrols/StopButton.qml \
+	player/qml/controlbarcontrols/SubtitleButton.qml \
 	player/qml/controlbarcontrols/TeletextButton.qml \
 	player/qml/controlbarcontrols/TeletextColorButton.qml \
 	player/qml/controlbarcontrols/TeletextWidget.qml \
+	player/qml/controlbarcontrols/TracksPopupButton.qml \
 	player/qml/controlbarcontrols/VolumeWidget.qml \
 	player/qml/controlbarcontrols/Fallback.qml
 libqml_module_playercontrols_a_Singleton_QML =
@@ -1271,7 +1418,8 @@ libqml_module_style_a_CPPFLAGS = $(libqt_plugin_la_CPPFLAGS)
 libqml_module_style_a_QML =
 libqml_module_style_a_Singleton_QML = \
 	style/AcrylicController.qml \
-	style/VLCStyle.qml
+	style/VLCStyle.qml \
+	style/PanelStyle.qml
 libqml_module_style_a_SOURCES = $(QML_MODULE_style_SRC)
 nodist_libqml_module_style_a_SOURCES = style/qmlassets.cpp $(QML_MODULE_style_NODIST_EXTRA)
 QML_MODULE_LIBS += libqml_module_style.a
@@ -1390,7 +1538,26 @@ libqml_module_widgets_a_QML = \
 	widgets/qml/VoronoiSnow.qml \
 	widgets/qml/DualKawaseBlur.qml \
 	widgets/qml/CheckBoxExt.qml \
-	widgets/qml/ProgressBarExt.qml
+	widgets/qml/ProgressBarExt.qml \
+	widgets/qml/PanelIcon.qml \
+	widgets/qml/PanelToggle.qml \
+	widgets/qml/PanelTextField.qml \
+	widgets/qml/PanelSlider.qml \
+	widgets/qml/PanelSegmented.qml \
+	widgets/qml/PanelComboBox.qml \
+	widgets/qml/PanelSection.qml \
+	widgets/qml/PanelRow.qml \
+	widgets/qml/PanelExpander.qml \
+	widgets/qml/PanelTabBar.qml \
+	widgets/qml/PanelColorField.qml \
+	widgets/qml/PanelButton.qml \
+	widgets/qml/PanelValueSlider.qml \
+	widgets/qml/SvgToolButton.qml \
+	widgets/qml/PanelMenu.qml \
+	widgets/qml/PanelSearchField.qml \
+	widgets/qml/AppMainMenu.qml \
+	widgets/qml/PanelDialog.qml \
+	widgets/qml/DashedFrame.qml
 libqml_module_widgets_a_Singleton_QML =
 libqml_module_widgets_a_SOURCES = $(QML_MODULE_widgets_SRC)
 nodist_libqml_module_widgets_a_SOURCES = widgets/qmlassets.cpp $(QML_MODULE_widgets_NODIST_EXTRA)

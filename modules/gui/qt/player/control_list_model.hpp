@@ -82,8 +82,8 @@ public:
         NAVIGATION_BUTTONS,
         PROGRAM_BUTTON,
         NAVIGATION_BOX,
-        RESERVED_0X2B,
-        RESERVED_0X2C,
+        SUBTITLE_BUTTON,
+        AUDIO_TRACK_BUTTON,
         RESERVED_0X2D,
         RESERVED_0X2E,
         RESERVED_0X2F,
@@ -111,7 +111,7 @@ public:
     Q_ENUM(ControlType)
 
     static_assert(RESERVED_0X1F == 0x1F, "missaligned");
-    static_assert(RESERVED_0X2B == 0x2B, "missaligned");
+    static_assert(SUBTITLE_BUTTON == 0x2B, "missaligned");
     static_assert(RESERVED_0X3F == 0x3F, "missaligned");
 
     // Basic functionality:
@@ -152,6 +152,9 @@ public slots:
     Q_INVOKABLE void move(int src,int dest);
     Q_INVOKABLE void remove(int index);
     Q_INVOKABLE void clear();
+
+    // the controls, in their order
+    Q_INVOKABLE QVariantList ids() const;
 };
 
 #endif // CONTROLLISTMODEL_HPP

@@ -88,10 +88,31 @@ T.Pane {
         }
     }
 
-    background: Widgets.AcrylicBackground {
-        enabled: root.useAcrylic
-        tintColor: theme.bg.primary
+    readonly property var _c: PanelStyle.colors((theme.palette?.isDark ?? true))
+
+    // a rounded panel a step lighter than the library
+    background: Item {
+        // the gap around the panel, as the library
+        readonly property color color: (theme.palette?.isDark ?? true) ? PanelStyle.dark.panel : PanelStyle.light.panel
+
+        Rectangle {
+            anchors.fill: parent
+            anchors.margins: VLCStyle.dp(8, VLCStyle.scale)
+            anchors.rightMargin: 0
+            color: root._c.raised
+            radius: VLCStyle.dp(8, VLCStyle.scale)
+        }
     }
+
+    readonly property var _icons: ({
+        "home": "home",
+        "video": "videos",
+        "music": "music",
+        "network": "network",
+        "playlists": "playlists",
+        "recent": "recent",
+        "discover": "podcast"
+    })
 
     contentItem:  Item {
         id: contentItemId
@@ -163,7 +184,8 @@ T.Pane {
                     width: ListView.view.contentWidth
                     height: preferredHeight
 
-                    property real preferredHeight: shouldShow ? VLCStyle.buttonHeightNavigationPane : 0.0
+                    property real preferredHeight: shouldShow ? (depth === 0 ? VLCStyle.dp(46, VLCStyle.scale)
+                                                                             : VLCStyle.dp(36, VLCStyle.scale)) : 0.0
 
                     leftPadding: root.safeAreaLeftMargin + VLCStyle.margin_xsmall
                     rightPadding: root.safeAreaRightMargin
@@ -172,6 +194,7 @@ T.Pane {
                     rightInset: root.safeAreaRightMargin + implicitRightInset
 
                     iconTxt: icon_alias
+                    iconName: (depth === 0 && uri && uri.length > 0) ? (root._icons[uri[0]] ?? "") : ""
                     text: title
 
                     showText: root.delegateShowText
@@ -259,13 +282,55 @@ T.Pane {
                 }
             }
 
+            // "Add item": a folder to the library, a network stream or a playlist
+            SideNavigationDelegate {
+                id: addButton
+
+                Layout.fillWidth: true
+                Layout.preferredHeight: VLCStyle.dp(46, VLCStyle.scale)
+
+                leftPadding: root.safeAreaLeftMargin + VLCStyle.margin_xsmall
+                rightPadding: root.safeAreaRightMargin
+
+                iconName: "add"
+                text: qsTr("Add item")
+                showText: root.delegateShowText
+                focusPolicy: Qt.StrongFocus
+
+                onClicked: addMenu.popup(addButton.mapToGlobal(addButton.width, 0))
+
+                Widgets.PanelMenu {
+                    id: addMenu
+
+                    model: [
+                        { text: qsTr("Add a folder to the library"), icon: "folder" },
+                        { text: qsTr("Open a network stream"), icon: "link" },
+                        { text: qsTr("Create a playlist"), icon: "playlists" }
+                    ]
+
+                    onTriggered: (index) => {
+                        switch (index) {
+                        case 0: MainCtx.addLibraryFolder(); break
+                        case 1: PlayerTweaks.requestDialog("network"); break
+                        case 2: PlayerTweaks.requestDialog("playlist"); break
+                        }
+                    }
+                }
+
+                Navigation.parentItem: root
+                Navigation.upItem: listView
+                Navigation.downItem: preferenceButton
+            }
+
+            Item { Layout.fillHeight: true; Layout.maximumHeight: 0 }
+
             SideNavigationDelegate {
                 id: preferenceButton
 
                 AccessibleCompat.id: "preferencesButton"
 
                 Layout.fillWidth: true
-                Layout.preferredHeight: VLCStyle.buttonHeightNavigationPane
+                Layout.preferredHeight: VLCStyle.dp(46, VLCStyle.scale)
 
                 leftPadding: root.safeAreaLeftMargin + VLCStyle.margin_xsmall
                 rightPadding: root.safeAreaRightMargin
@@ -273,14 +338,14 @@ T.Pane {
                 leftInset: root.safeAreaLeftMargin + implicitLeftInset
                 rightInset: root.safeAreaRightMargin + implicitRightInset
 
-                iconTxt: VLCIcons.settings
-                text: qsTr("Preferences")
+                iconName: "preferences"
+                text: qsTr("Settings")
 
                 checked: DialogsProvider.prefsDialogVisible
 
                 showText: root.delegateShowText
 
-                onClicked: DialogsProvider.prefsDialog()
+                onClicked: PlayerTweaks.requestDialog("settings")
 
                 //SideNavigationDelegate is an ItemDelegate and has NoFocus by default
                 focusPolicy: Qt.StrongFocus

@@ -220,9 +220,10 @@ Item {
 
             horizontalAlignment: Text.AlignHCenter
             text: timeDel.rowModel?.[timeDel.colModel.criteria]?.formatShort() ?? ""
+            // durations in the secondary color of the redesign
             color: timeDel.selected
                 ? timeDel.colorContext.fg.highlight
-                : timeDel.colorContext.fg.primary
+                : timeDel.colorContext.fg.secondary
         }
     }
 

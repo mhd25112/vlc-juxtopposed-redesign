@@ -46,9 +46,15 @@ class TrackListModel : public QAbstractListModel
     Q_OBJECT
     Q_PROPERTY(int count READ getCount NOTIFY countChanged FINAL)
     Q_PROPERTY(bool multiSelect READ getMultiSelect WRITE setMultiSelect NOTIFY multiSelectChanged FINAL)
+    Q_PROPERTY(bool hasSelection READ hasSelection NOTIFY hasSelectionChanged FINAL)
 
 public:
     TrackListModel(vlc_player_t* player, QObject* parent = nullptr);
+
+    // Unselect every track of this list (the "None" entry of track menus)
+    Q_INVOKABLE void unselectAll();
+
+    bool hasSelection() const;
 
     Qt::ItemFlags flags(const QModelIndex &) const  override;
 
@@ -76,6 +82,7 @@ public slots:
 signals:
     void countChanged();
     void multiSelectChanged(bool multiSelect);
+    void hasSelectionChanged();
 
 private:
     vlc_player_t* m_player;

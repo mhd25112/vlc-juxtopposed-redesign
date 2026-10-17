@@ -21,7 +21,8 @@ import VLC.Style
 LabelExt {
     elide: Text.ElideRight
     font.pixelSize: VLCStyle.fontSize_normal
-    font.weight: Font.DemiBold
+    // the redesign's lists are in regular text
+    font.weight: Font.Normal
     verticalAlignment: Text.AlignVCenter
     textFormat: Text.PlainText
 }

@@ -34,6 +34,7 @@
 #include "mainctx.hpp"
 #include "mainctx_submodels.hpp"
 #include "medialibrary/mlhelper.hpp"
+#include "medialibrary/medialib.hpp"
 
 #include "compositor.hpp"
 #include "util/renderer_manager.hpp"
@@ -66,6 +67,10 @@
 #include <QMimeData>
 #include <QClipboard>
 #include <QInputDialog>
+#include <QFileDialog>
+#include <QCursor>
+#include <QDir>
+#include <QFileInfo>
 
 #include <QQmlProperty>
 
@@ -486,7 +491,7 @@ void MainCtx::loadFromSettingsImpl(const bool callSignals)
 
     loadFromSettings(m_gridView, "MainWindow/grid-view", true, this, &MainCtx::gridViewChanged);
 
-    loadFromSettings(m_grouping, "MainWindow/grouping", GROUPING_NONE, this, &MainCtx::groupingChanged);
+    loadFromSettings(m_grouping, "MainWindow/grouping", GROUPING_FOLDER, this, &MainCtx::groupingChanged);
 
     loadFromSettings(m_showRemainingTime, "MainWindow/ShowRemainingTime", false, this, &MainCtx::showRemainingTimeChanged);
 
@@ -1291,3 +1296,60 @@ UpdateModel* MainCtx::getUpdateModel() const
     return m_updateModel.get();
 }
 #endif
+
+QString MainCtx::accentColor() const
+{
+    char *color = var_InheritString(p_intf, "qt-accent-color");
+    QString value = qfu(color);
+    free(color);
+    return value.isEmpty() ? QStringLiteral("default") : value;
+}
+
+void MainCtx::setAccentColor(const QString &color)
+{
+    if (color == accentColor())
+        return;
+    config_PutPsz("qt-accent-color", qtu(color));
+    emit accentColorChanged();
+}
+
+void MainCtx::addLibraryFolder()
+{
+    if (!m_medialib)
+        return;
+
+    const QUrl folder = QFileDialog::getExistingDirectoryUrl(nullptr, qtr("Add a folder to the library"));
+    if (folder.isEmpty())
+        return;
+
+    m_medialib->runOnMLThread(this,
+    //ML thread
+    [folder](vlc_medialibrary_t* ml){
+        vlc_ml_add_folder( ml, qtu( folder.toString( QUrl::FullyEncoded ) ) );
+    });
+}
+
+bool MainCtx::addLibraryFolderPath(const QString &path)
+{
+    if (!m_medialib)
+        return false;
+
+    QString local = path.trimmed();
+    if (local.startsWith(QLatin1Char('~')))
+        local = QDir::homePath() + local.mid(1);
+    if (local.isEmpty() || !QFileInfo(local).isDir())
+        return false;
+
+    const QUrl folder = QUrl::fromLocalFile(QDir::cleanPath(local));
+    m_medialib->runOnMLThread(this,
+    //ML thread
+    [folder](vlc_medialibrary_t* ml){
+        vlc_ml_add_folder( ml, qtu( folder.toString( QUrl::FullyEncoded ) ) );
+    });
+    return true;
+}
+
+QPoint MainCtx::cursorPosition() const
+{
+    return QCursor::pos();
+}

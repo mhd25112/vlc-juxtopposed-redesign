@@ -32,7 +32,7 @@ T.Pane {
 
     readonly property color sliderColor: {
         const theme = volControl.colorContext
-        return (volControl.position > _fullvolpos) ? theme.fg.negative : theme.fg.primary
+        return (volControl.position > _fullvolpos) ? theme.fg.negative : theme.accent
     }
 
     readonly property var _player: paintOnly ? ({ muted: false, volume: .5 }) : Player
@@ -57,23 +57,13 @@ T.Pane {
         anchors.fill: parent
         spacing: 0
 
-        Widgets.IconToolButton{
+        // the speaker of the redesign
+        Widgets.SvgToolButton {
             id: volumeBtn
 
             focus: true
             paintOnly: root.paintOnly
-            text: {
-                if (_player.muted)
-                    return VLCIcons.volume_muted
-                else if (_player.volume === 0)
-                    return VLCIcons.volume_zero
-                else if (_player.volume < .33)
-                    return VLCIcons.volume_low
-                else if (_player.volume <= .66)
-                    return VLCIcons.volume_medium
-                else
-                    return VLCIcons.volume_high
-            }
+            iconName: (_player.muted || _player.volume === 0) ? "volume_muted" : "volume"
             description: qsTr("Mute")
 
             AccessibleCompat.id: "muteButton"
@@ -126,6 +116,85 @@ T.Pane {
             property bool filterEvents: false
 
             color: root.sliderColor
+
+            // The volume is a cone lying on its side, like the VLC traffic cone:
+            // narrow and quiet on the left, wide and loud on the right. It fills
+            // from green to amber at 100% and to red when amplifying.
+            background: Canvas {
+                id: cone
+
+                // height of the narrow end, relative to the wide end
+                readonly property real tipRatio: 0.3
+                readonly property real level: volControl.position
+                readonly property real fullLevel: root._fullvolpos
+                readonly property real outlineWidth: Math.max(1, VLCStyle.dp(1.5, VLCStyle.scale))
+
+                x: volControl.leftPadding
+                y: volControl.topPadding + (volControl.availableHeight - height) / 2
+
+                implicitWidth: VLCStyle.heightBar_xlarge
+                implicitHeight: VLCStyle.heightBar_small
+
+                width: volControl.availableWidth
+                height: Math.min(implicitHeight, volControl.availableHeight)
+
+                scale: volControl.horizontal && volControl.mirrored ? -1 : 1
+
+                onLevelChanged: requestPaint()
+                onFullLevelChanged: requestPaint()
+                onWidthChanged: requestPaint()
+                onHeightChanged: requestPaint()
+
+                function _shape(ctx, w, h) {
+                    const m = outlineWidth / 2
+                    const tip = (h - 2 * m) * tipRatio
+                    const top = (h - tip) / 2
+                    const r = Math.min(h * 0.2, VLCStyle.dp(3, VLCStyle.scale))
+
+                    ctx.beginPath()
+                    ctx.moveTo(m, h / 2)
+                    ctx.arcTo(m, top, w - m, m, r)
+                    ctx.arcTo(w - m, m, w - m, h - m, r)
+                    ctx.arcTo(w - m, h - m, m, h - top, r)
+                    ctx.arcTo(m, h - top, m, h / 2, r)
+                    ctx.closePath()
+                }
+
+                onPaint: {
+                    const ctx = getContext("2d")
+                    const w = width, h = height
+
+                    ctx.reset()
+                    if (w <= 0 || h <= 0)
+                        return
+
+                    // empty cone
+                    _shape(ctx, w, h)
+                    ctx.fillStyle = Qt.rgba(0, 0, 0, 0.55)
+                    ctx.fill()
+
+                    // current volume
+                    ctx.save()
+                    ctx.beginPath()
+                    ctx.rect(0, 0, level * w, h)
+                    ctx.clip()
+                    _shape(ctx, w, h)
+                    const fill = ctx.createLinearGradient(0, 0, w, 0)
+                    fill.addColorStop(0.0, "#5DB92C")
+                    fill.addColorStop(Math.min(fullLevel * 0.65, 1.0), "#A9BE22")
+                    fill.addColorStop(Math.min(fullLevel, 1.0), "#E9A21B")
+                    fill.addColorStop(1.0, "#E0321C")
+                    ctx.fillStyle = fill
+                    ctx.fill()
+                    ctx.restore()
+
+                    // outline
+                    _shape(ctx, w, h)
+                    ctx.lineWidth = outlineWidth
+                    ctx.strokeStyle = Qt.rgba(0, 0, 0, 0.85)
+                    ctx.stroke()
+                }
+            }
 
             from: 0
             to: root._maxvolpos
@@ -241,8 +310,10 @@ T.Pane {
                 parent: volControl.background
 
                 x : parent.width * root._fullvolpos
+                // as tall as the cone where it stands
+                height: parent.height * (cone.tipRatio + (1 - cone.tipRatio) * root._fullvolpos)
+                y: (parent.height - height) / 2
                 width: VLCStyle.dp(1, VLCStyle.scale)
-                height: parent.height
                 radius: VLCStyle.dp(2, VLCStyle.scale)
 
                 // NOTE: This shouldn't be visible when the volume stops before a 100.

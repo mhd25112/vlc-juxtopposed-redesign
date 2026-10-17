@@ -36,6 +36,15 @@ FocusScope {
 
     property int identifier: -1
 
+    // "Customize Player": the controls in frames, to be moved around
+    property bool editMode: false
+
+    // Optional item stretched between the left and right controls, such as
+    // the position slider. This needs a layout without center controls.
+    property Item fillItem: null
+    property real fillItemMinimumWidth: VLCStyle.dp(160, VLCStyle.scale)
+    readonly property bool canHostFillItem: loaderLeftRight.active
+
     readonly property PlayerControlbarModel model: {
         if (!!MainCtx.controlbarProfileModel.currentModel)
             return MainCtx.controlbarProfileModel.currentModel.getModel(identifier)
@@ -71,6 +80,8 @@ FocusScope {
 
     Loader {
         id: loaderLeftRight
+
+        visible: !playerControlLayout.editMode
 
         anchors.fill: parent
 
@@ -129,11 +140,23 @@ FocusScope {
                     return false
                 }
 
-                Layout.minimumWidth: (containsVisibleItem(leftRepeater) && containsVisibleItem(rightRepeater)) ? playerControlLayout.layoutSpacing
-                                                                                                               : 0
+                readonly property Item fillItem: playerControlLayout.fillItem
+
+                Layout.minimumWidth: {
+                    if (fillItem)
+                        return playerControlLayout.fillItemMinimumWidth
+
+                    return (containsVisibleItem(leftRepeater) && containsVisibleItem(rightRepeater)) ? playerControlLayout.layoutSpacing
+                                                                                                     : 0
+                }
 
                 Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.leftMargin: fillItem ? (playerControlLayout.layoutSpacing - playerControlLayout.spacing) : 0
+                Layout.rightMargin: Layout.leftMargin
                 visible: true
+
+                children: fillItem ? [fillItem] : []
             }
 
             ControlRepeater {
@@ -170,6 +193,8 @@ FocusScope {
 
     Loader {
         id: loaderLeft
+
+        visible: !playerControlLayout.editMode
 
         anchors {
             right: loaderCenter.left
@@ -217,6 +242,8 @@ FocusScope {
 
     Loader {
         id: loaderCenter
+
+        visible: !playerControlLayout.editMode
 
         anchors {
             horizontalCenter: parent.horizontalCenter
@@ -281,6 +308,8 @@ FocusScope {
     Loader {
         id: loaderRight
 
+        visible: !playerControlLayout.editMode
+
         anchors {
             left: loaderCenter.right
             right: parent.right
@@ -322,6 +351,14 @@ FocusScope {
             Component.onCompleted:{
                 playerControlLayout.forceUnlock.connect(rightControlLayout.forceUnlock)
             }
+        }
+    }
+
+    Loader {
+        anchors.fill: parent
+        active: playerControlLayout.editMode
+        sourceComponent: ControlBarEditor {
+            barModel: playerControlLayout.model
         }
     }
 }

@@ -20,17 +20,21 @@ import QtQuick
 
 import VLC.Widgets as Widgets
 import VLC.Style
-import VLC.Dialogs
+import VLC.Player
 import VLC.Util
 
-Widgets.IconToolButton {
+// Opens the player sidebar (playback, video, audio and subtitle settings) on
+// the tab it showed last.
+Widgets.SvgToolButton {
     id: extdSettingsBtn
 
-    text: VLCIcons.effect_filter
+    iconName: "settings"
 
-    description: qsTr("Extended settings")
+    checked: PlayerTweaks.sidebarVisible
+
+    description: qsTr("Playback settings")
 
     AccessibleCompat.id: "extendedSettingsButton"
 
-    onClicked: DialogsProvider.extendedDialog()
+    onClicked: PlayerTweaks.toggleSidebar(PlayerTweaks.sidebarPage)
 }

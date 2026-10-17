@@ -28,20 +28,78 @@ import VLC.MainInterface
 T.ProgressBar {
     id: control
 
-    readonly property real _hoveredScalingFactor: 1.8
+    // Thick flat bar of the redesign: a near black track, the played part in
+    // a dark accent and a thin accent handle that always shows
+    property bool flatStyle: false
+    readonly property var _panel: PanelStyle.colors((theme.palette?.isDark ?? true))
+    readonly property color _playedColor: flatStyle ? PanelStyle.accentFill(theme.accent, (theme.palette?.isDark ?? true))
+                                                    : theme.fg.primary
+    readonly property real _flatRadius: VLCStyle.dp(4, VLCStyle.scale)
+
+    readonly property real _hoveredScalingFactor: flatStyle ? 1.0 : 1.8
     property int barHeight: VLCStyle.dp(5, VLCStyle.scale)
     readonly property real _scaledBarHeight: control.barHeight * _hoveredScalingFactor
     readonly property real _scaledY: (-control.barHeight / 2) * (control._hoveredScalingFactor - 1)
 
     property bool _isSeekPointsShown: true
     readonly property int _seekPointsDistance: VLCStyle.dp(2, VLCStyle.scale)
-    readonly property int _seekPointsRadius: VLCStyle.dp(0.5, VLCStyle.scale)
+    readonly property int _seekPointsRadius: flatStyle ? VLCStyle.dp(3, VLCStyle.scale) : VLCStyle.dp(0.5, VLCStyle.scale)
     readonly property real _scaledSeekPointsRadius: _seekPointsRadius * _hoveredScalingFactor
 
     property bool _currentChapterHovered: false
     property real _tooltipPosition: (Widgets.PointingToolTipAttached.instance?.pos.x ?? 0.0) / width
 
-    property color backgroundColor: theme.bg.primary
+    property color backgroundColor: flatStyle ? _panel.field : theme.bg.primary
+
+    // songs show their waveform in the flat bar, the played part in the accent;
+    // videos too with "Show Waveform on Seekbar" (it reads the whole file)
+    readonly property bool _waveformForVideos: {
+        PlayerTweaks.revision
+        return String(PlayerTweaks.uiOption("waveform", false)) === "true"
+    }
+    readonly property bool _showWaveform: flatStyle && (!Player.hasVideoOutput || _waveformForVideos)
+                                          && PlayerTweaks.waveform.length > 0
+
+
+    // "Show Subtitle Timeline on Seekbar": where the lines of the subtitles are
+    readonly property bool _showSubtitleTimeline: {
+        PlayerTweaks.revision
+        return flatStyle && String(PlayerTweaks.uiOption("subtitleTimeline", false)) === "true"
+    }
+    property var _subtitleCues: []
+
+    function _loadSubtitleCues() {
+        _subtitleCues = (_showSubtitleTimeline && Player.isStarted) ? PlayerTweaks.subtitleCues(Player.url) : []
+    }
+
+    on_ShowSubtitleTimelineChanged: _loadSubtitleCues()
+
+    // a subtitle file added
+    Connections {
+        target: Player.subtitleTracks
+        enabled: control._showSubtitleTimeline
+        function onCountChanged() { control._loadSubtitleCues() }
+    }
+
+    // asked when the media, its picture or the setting changes (directly: QML
+    // timers stop while the window is hidden, as with music playing behind);
+    // a video asked as it starts, before its picture shows, is cancelled when
+    // the picture comes
+    function _requestWaveform() {
+        if (!flatStyle)
+            return
+        // no picture shown (a cover in the file can still be a video track)
+        const song = Player.isStarted && !Player.hasVideoOutput
+        const video = Player.isStarted && Player.hasVideoOutput && _waveformForVideos
+        PlayerTweaks.loadWaveform((song || video) ? Player.url : "")
+        _loadSubtitleCues()
+    }
+
+    readonly property string _waveformKey: (flatStyle && Player.isStarted)
+                                           ? [String(Player.url), Player.hasVideoOutput, _waveformForVideos].join("|")
+                                           : ""
+    on_WaveformKeyChanged: _requestWaveform()
+
     property real touchHandlerMargin: VLCStyle.touchHandlerMargin
 
     Keys.onRightPressed: Player.jumpFwd()
@@ -72,6 +130,85 @@ T.ProgressBar {
     }
 
     Widgets.PointingToolTipAttached.visible: (hoverHandler.hovered || control.visualFocus || dragHandler.active)
+                                             && !seekPreview.visible
+
+    // videos: a picture of where the pointer is, over the bar
+    readonly property bool _showPreview: flatStyle && Player.hasVideoOutput && Player.seekable && hoverHandler.hovered
+
+    Timer {
+        id: previewRequest
+
+        interval: 60
+        onTriggered: {
+            if (control._showPreview)
+                PlayerTweaks.requestSeekPreview(Player.url, control._tooltipPosition)
+        }
+    }
+
+    on_TooltipPositionChanged: {
+        if (_showPreview)
+            previewRequest.restart()
+    }
+
+    on_ShowPreviewChanged: {
+        if (_showPreview)
+            previewRequest.restart()
+    }
+
+    Rectangle {
+        id: seekPreview
+
+        readonly property real pointerX: Helpers.clamp(hoverHandler.point.position.x, 0, control.availableWidth)
+
+        z: 10
+        visible: control._showPreview && String(PlayerTweaks.seekPreview) !== ""
+        width: VLCStyle.dp(272, VLCStyle.scale)
+        height: VLCStyle.dp(189, VLCStyle.scale)
+        x: Helpers.clamp(pointerX - width / 2, -control.leftPadding, control.width - width)
+        y: -height - VLCStyle.dp(14, VLCStyle.scale)
+
+        radius: VLCStyle.dp(8, VLCStyle.scale)
+        color: control._panel.window
+        border.width: VLCStyle.border
+        border.color: control._panel.separatorBright
+
+        Rectangle {
+            id: previewFrame
+
+            x: VLCStyle.dp(8, VLCStyle.scale)
+            y: VLCStyle.dp(8, VLCStyle.scale)
+            width: parent.width - 2 * x
+            height: Math.round(width * 9 / 16)
+            radius: VLCStyle.dp(6, VLCStyle.scale)
+            color: control._panel.video
+            clip: true
+
+            Image {
+                anchors.fill: parent
+                source: PlayerTweaks.seekPreview
+                fillMode: Image.PreserveAspectFit
+                asynchronous: true
+            }
+        }
+
+        Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.top: previewFrame.bottom
+            anchors.bottom: parent.bottom
+            verticalAlignment: Text.AlignVCenter
+            text: control._hms(Player.length.scale(control._tooltipPosition))
+            font.pixelSize: VLCStyle.dp(14, VLCStyle.scale)
+            color: control._panel.label
+        }
+    }
+
+    function _hms(tick) {
+        if (!tick.valid())
+            return "--:--:--"
+        const total = Math.max(0, tick.toSeconds())
+        const pad = (n) => String(n).padStart(2, "0")
+        return pad(Math.floor(total / 3600)) + ":" + pad(Math.floor(total / 60) % 60) + ":" + pad(total % 60)
+    }
 
     Widgets.PointingToolTipAttached.text: {
         if (!Widgets.PointingToolTipAttached.instance?.visible)
@@ -194,7 +331,10 @@ T.ProgressBar {
         function onInputChanged() {  fsm.inputChanged() }
     }
 
-    Component.onCompleted: value = Player.position
+    Component.onCompleted: {
+        value = Player.position
+        _requestWaveform()
+    }
 
     implicitHeight: control.barHeight
     height: implicitHeight
@@ -324,7 +464,9 @@ T.ProgressBar {
             visible: !Player.hasChapters
             color: control.backgroundColor
             anchors.fill: parent
-            radius: implicitHeight
+            radius: control.flatStyle ? control._flatRadius : implicitHeight
+            border.width: control.flatStyle ? VLCStyle.border : 0
+            border.color: control._panel.fieldBorder
         }
 
         Repeater {
@@ -357,7 +499,7 @@ T.ProgressBar {
                     readonly property bool _hovered: hoverHandler.hovered &&
                                             (hoverHandler.point.position.x > x && hoverHandler.point.position.x < x+width)
 
-                    color: _currentChapter < 0 ? theme.fg.primary : control.backgroundColor
+                    color: _currentChapter < 0 ? control._playedColor : control.backgroundColor
                     width: sliderRect.width * seekpointsRect.endPosition - x - control._seekPointsDistance
                     x: sliderRect.width * seekpointsRect.startPosition
 
@@ -370,7 +512,7 @@ T.ProgressBar {
 
                         width: sliderRect.width * control.visualPosition - parent.x - control._seekPointsDistance
                         visible: parent._currentChapter === 0
-                        color: theme.fg.primary
+                        color: control._playedColor
 
                         // We use dynamic mutability group because time interpolation
                         // may induce rapid change:
@@ -427,13 +569,88 @@ T.ProgressBar {
             }
         }
 
+        Item {
+            id: waveformBars
+
+            anchors.fill: parent
+            anchors.leftMargin: VLCStyle.dp(6, VLCStyle.scale)
+            anchors.rightMargin: VLCStyle.dp(6, VLCStyle.scale)
+            // room for the subtitle timeline under it
+            anchors.bottomMargin: subtitleTimeline.visible ? VLCStyle.dp(6, VLCStyle.scale) : 0
+
+            visible: control._showWaveform
+
+            readonly property real step: VLCStyle.dp(5, VLCStyle.scale)
+            readonly property int count: visible ? Math.max(0, Math.floor(width / step)) : 0
+            readonly property var levels: PlayerTweaks.waveform
+
+            Repeater {
+                model: waveformBars.count
+
+                Rectangle {
+                    required property int index
+
+                    readonly property real level: {
+                        const levels = waveformBars.levels
+                        return levels[Math.min(levels.length - 1, Math.floor(index * levels.length / waveformBars.count))] ?? 0
+                    }
+
+                    x: index * waveformBars.step
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: Math.max(1, Math.round(VLCStyle.dp(2, VLCStyle.scale)))
+                    // a little curve, so that the soft parts show too
+                    height: Math.max(VLCStyle.dp(3, VLCStyle.scale), Math.pow(level, 0.6) * (waveformBars.height - VLCStyle.dp(8, VLCStyle.scale)))
+                    radius: width / 2
+                    color: ((index + 0.5) / waveformBars.count) <= control.visualPosition ? theme.accent
+                                                                                         : control._panel.label
+                }
+            }
+        }
+
+        Canvas {
+            id: subtitleTimeline
+
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            anchors.leftMargin: VLCStyle.border
+            anchors.rightMargin: VLCStyle.border
+            anchors.bottomMargin: VLCStyle.dp(3, VLCStyle.scale)
+            height: VLCStyle.dp(3, VLCStyle.scale)
+            z: 1
+
+            visible: control._showSubtitleTimeline && control._subtitleCues.length > 0
+
+            readonly property var cues: control._subtitleCues
+            readonly property real length: Player.length.valid() ? Player.length.toSeconds() : 0
+            readonly property color color: control._panel.bright
+
+            onCuesChanged: requestPaint()
+            onLengthChanged: requestPaint()
+            onWidthChanged: requestPaint()
+            onColorChanged: requestPaint()
+
+            onPaint: {
+                const ctx = getContext("2d")
+                ctx.reset()
+                if (length <= 0)
+                    return
+                ctx.fillStyle = color
+                for (let i = 0; i + 1 < cues.length; i += 2) {
+                    const x = cues[i] / length * width
+                    const w = Math.max(1, (cues[i + 1] - cues[i]) / length * width)
+                    ctx.fillRect(x, 0, w, height)
+                }
+            }
+        }
+
         Rectangle {
             id: progressRect
             width: control.visualPosition * parent.width
-            visible: !Player.hasChapters
-            color: theme.fg.primary
+            visible: !Player.hasChapters && !control._showWaveform
+            color: control._playedColor
             height: control.barHeight
-            radius: control._seekPointsRadius
+            radius: control.flatStyle ? control._flatRadius : control._seekPointsRadius
 
             // We use dynamic mutability group because time interpolation
             // may induce rapid change:
@@ -458,8 +675,8 @@ T.ProgressBar {
 
             height: control.barHeight
             opacity: 0.4
-            color: theme.fg.neutral //FIXME buffer color ?
-            radius: control.barHeight
+            color: control.flatStyle ? control._panel.separatorBright : theme.fg.neutral //FIXME buffer color ?
+            radius: control.flatStyle ? control._flatRadius : control.barHeight
 
             // TODO: Do not use `Binding` when minimum Qt is 6.12:
             Binding {
@@ -575,8 +792,8 @@ T.ProgressBar {
 
         implicitWidth: sliderHandle._size
         implicitHeight: sliderHandle._size
-        radius: VLCStyle.margin_small
-        color: theme.fg.primary
+        radius: control.flatStyle ? VLCStyle.dp(3, VLCStyle.scale) : VLCStyle.margin_small
+        color: control.flatStyle ? theme.accent : theme.fg.primary
 
         // We use dynamic mutability group because time interpolation
         // may induce rapid change:
@@ -625,8 +842,21 @@ T.ProgressBar {
             }
         ]
 
-        state: (hoverHandler.hovered || control.visualFocus)
-               ? ((control._currentChapterHovered || (Player.hasChapters && fsm._state === fsm.fsmHeld)) ? "visibleLarge" : "visible")
-               : "hidden"
+        states: State {
+            name: "flat"
+            PropertyChanges {
+                sliderHandle.visible: true
+                sliderHandle.implicitWidth: VLCStyle.dp(7, VLCStyle.scale)
+                sliderHandle.implicitHeight: control.barHeight
+            }
+        }
+
+        state: {
+            if (control.flatStyle)
+                return "flat"
+            return (hoverHandler.hovered || control.visualFocus)
+                   ? ((control._currentChapterHovered || (Player.hasChapters && fsm._state === fsm.fsmHeld)) ? "visibleLarge" : "visible")
+                   : "hidden"
+        }
     }
 }

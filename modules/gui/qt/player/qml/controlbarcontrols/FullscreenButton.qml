@@ -23,11 +23,12 @@ import VLC.Style
 import VLC.Player
 import VLC.Util
 
-Widgets.IconToolButton {
+Widgets.SvgToolButton {
     id: fullScreenBtn
 
+    iconName: "fullscreen"
+
     enabled: Player.hasVideoOutput
-    text: Player.fullscreen ? VLCIcons.defullscreen :VLCIcons.fullscreen
     onClicked: Player.fullscreen = !Player.fullscreen
     description: qsTr("fullscreen")
 

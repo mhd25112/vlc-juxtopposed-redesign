@@ -164,7 +164,9 @@ MainViewLoader {
                 fallbackImage: model.isVideo ? VLCStyle.noArtVideoCover : VLCStyle.noArtAlbumCover
 
                 title: model.title || qsTr("Unknown Title")
-                subtitle: model.duration?.formatHMS() ?? "--:--"
+                // the redesign: the artist of songs, the name only for videos
+                subtitle: model.isVideo ? "" : (model.main_artist || (model.duration?.formatHMS() ?? ""))
+                dimmed: model.isNew === false
 
                 opacity: gridView.expandIndex !== -1 && gridView.expandIndex !== index ? 0.7 : 1
 

@@ -78,8 +78,10 @@ public:
     MediaLib* ml() const;
     void setMl(MediaLib* ml);
 
-    void add();
+    // bookmark at the current time of the player
+    Q_INVOKABLE void add();
     void remove( const QModelIndexList& indexes );
+    Q_INVOKABLE void removeAt( int row ) { remove( { index( row, 0 ) } ); }
     void clear();
     Q_INVOKABLE void select( const QModelIndex& index );
 

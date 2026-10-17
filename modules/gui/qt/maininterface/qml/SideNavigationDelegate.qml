@@ -32,6 +32,10 @@ T.ItemDelegate {
     // Properties
 
     property string iconTxt: ""
+    // line icon of the redesign (pixmaps/redesign), preferred to iconTxt
+    property string iconName: ""
+    // indentation of the sub entries
+    property int depth: 0
 
     property bool showText: true
 
@@ -97,24 +101,15 @@ T.ItemDelegate {
         enabled: control.enabled
     }
 
-    background: Widgets.AnimatedBackground {
-        enabled: theme.initialized
-        color: theme.bg.primary
-        border.color: visualFocus ? theme.visualFocus : "transparent"
+    readonly property var _c: PanelStyle.colors((theme.palette?.isDark ?? true))
 
-        radius: control.radius
+    background: Rectangle {
+        color: control.hovered || control.visualFocus ? control._c.hover : "transparent"
+        border.width: control.visualFocus ? VLCStyle.border : 0
+        border.color: theme.accent
+        radius: VLCStyle.dp(6, VLCStyle.scale)
 
-        Widgets.CurrentIndicator {
-            anchors {
-                left: parent.left
-                leftMargin: VLCStyle.margin_xxxsmall
-                verticalCenter: parent.verticalCenter
-            }
-            implicitHeight: parent.height / 2
-            visible: control.checked
-
-            radius: control.radius / 2
-        }
+        Behavior on color { ColorAnimation { duration: VLCStyle.duration_veryShort } }
     }
 
     contentItem: RowLayout {
@@ -122,12 +117,28 @@ T.ItemDelegate {
 
         Item {
             Layout.preferredWidth: VLCStyle.icon_banner
+            Layout.leftMargin: control.depth * VLCStyle.dp(14, VLCStyle.scale)
             Layout.fillHeight: true
+
+            Widgets.PanelIcon {
+                anchors.centerIn: parent
+
+                visible: control.iconName !== ""
+                size: VLCStyle.dp(22, VLCStyle.scale)
+
+                readonly property bool active: control.highlighted || control.checked
+
+                // the current page shows a filled icon in the accent color
+                name: active && ["home", "videos", "music"].includes(control.iconName)
+                      ? control.iconName + "_filled" : control.iconName
+                color: active ? theme.accent : control._c.label
+                secondaryColor: control._c.raised
+            }
 
             Widgets.IconLabel {
                 id: iconLabel
 
-                visible: text.length > 0
+                visible: text.length > 0 && control.iconName === ""
 
                 anchors.centerIn: parent
 
@@ -152,15 +163,14 @@ T.ItemDelegate {
 
             verticalAlignment: Text.AlignVCenter
 
-            color: control.checked ? theme.fg.secondary : theme.fg.primary
+            color: (control.highlighted || control.checked) ? control._c.bright
+                                                            : (control.hovered ? control._c.text : control._c.label)
 
             elide: Text.ElideRight
 
             visible: control.showText
 
-            font.pixelSize: VLCStyle.fontSize_normal
-
-            font.weight: control.checked ? Font.DemiBold : Font.Normal
+            font.pixelSize: VLCStyle.dp(14, VLCStyle.scale)
 
             //button text is already exposed
             Accessible.ignored: true

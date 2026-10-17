@@ -17,6 +17,7 @@
  *****************************************************************************/
 import QtQuick
 
+import VLC.MainInterface
 import VLC.Widgets as Widgets
 import VLC.Style
 import VLC.Dialogs
@@ -55,7 +56,7 @@ Widgets.SplitButton {
             DialogsProvider.openDiscDialog()
             break
         case 3:
-            DialogsProvider.openNetDialog()
+            PlayerTweaks.requestDialog("network")
             break
         case 4:
             DialogsProvider.openCaptureDialog()

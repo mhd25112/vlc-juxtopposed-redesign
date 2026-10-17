@@ -85,8 +85,11 @@ MainViewLoader {
     emptyLabel: emptylabel
 
     sortModel: [
-        { text: qsTr("Alphabetic"), criteria: "title"    },
-        { text: qsTr("Duration"),   criteria: "duration" }
+        { text: qsTr("Name"),       criteria: "title"     },
+        { text: qsTr("Duration"),   criteria: "duration"  },
+        { text: qsTr("Date Added"), criteria: "insertion" },
+        // shown as "Unwatched First" and "Watched First"
+        { text: qsTr("Play Count"), criteria: "playcount" }
     ]
 
 
@@ -185,8 +188,39 @@ MainViewLoader {
         }
     }
 
+    // the redesign's list: a compact one in columns (VideoCompactDisplay),
+    // instead of the table of the details (tableList)
     Component {
         id: list
+
+        VideoCompactDisplay {
+            model: root.model
+
+            selectionModel: root.selectionModel
+
+            headerDelegate: root.header
+
+            dragItem: root.dragItem
+
+            contextMenu: root.contextMenu
+
+            displayMarginBeginning: root.displayMarginBeginning
+            displayMarginEnd: root.displayMarginEnd
+
+            interactive: root.interactive
+
+            reuseItems: root.reuseItems
+
+            Navigation.parentItem: root
+
+            onActionAtIndex: root.onAction(selectionModel.selectedIndexes)
+
+            onItemDoubleClicked: model => root.onDoubleClick(model)
+        }
+    }
+
+    Component {
+        id: tableList
 
         VideoListDisplay {
             id: listView

@@ -27,6 +27,24 @@ TrackListModel::TrackListModel(vlc_player_t *player, QObject *parent)
     : QAbstractListModel(parent)
     , m_player(player)
 {
+    // Selection changes always come with one of these:
+    connect(this, &QAbstractListModel::dataChanged, this, &TrackListModel::hasSelectionChanged);
+    connect(this, &QAbstractListModel::rowsInserted, this, &TrackListModel::hasSelectionChanged);
+    connect(this, &QAbstractListModel::rowsRemoved, this, &TrackListModel::hasSelectionChanged);
+}
+
+bool TrackListModel::hasSelection() const
+{
+    return std::any_of(m_data.cbegin(), m_data.cend(),
+                       [](const Data& track) { return track.m_selected; });
+}
+
+void TrackListModel::unselectAll()
+{
+    vlc_player_locker lock{ m_player };
+    for (const Data& track : m_data)
+        if (track.m_selected)
+            vlc_player_UnselectEsId(m_player, track.m_id.get());
 }
 
 Qt::ItemFlags TrackListModel::flags(const QModelIndex &) const

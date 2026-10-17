@@ -94,6 +94,81 @@ decltype (ControlbarProfileModel::m_defaults)
                 }
             },
             {
+                // NOTE: The first default profile is the one selected initially.
+                //       Playback controls stay on the left where they are found by
+                //       habit, and everything about the media (subtitles, audio,
+                //       queue, volume, settings) is grouped on the right; fullscreen
+                //       is in the title bar.
+                Style::MODERN_STYLE,
+                N_("Modern Style"),
+                {
+                    {
+                        PlayerControlbarModel::Videoplayer,
+                        {
+                            {
+                                {
+                                    ControlListModel::PREVIOUS_BUTTON,
+                                    ControlListModel::PLAY_BUTTON,
+                                    ControlListModel::NEXT_BUTTON
+                                },
+                                {
+
+                                },
+                                {
+                                    ControlListModel::VOLUME,
+                                    ControlListModel::AUDIO_TRACK_BUTTON,
+                                    ControlListModel::SUBTITLE_BUTTON,
+                                    ControlListModel::EXTENDED_BUTTON,
+                                    ControlListModel::PLAYLIST_BUTTON
+                                }
+                            }
+                        }
+                    },
+                    {
+                        PlayerControlbarModel::Audioplayer,
+                        {
+                            {
+                                {
+                                    ControlListModel::PREVIOUS_BUTTON,
+                                    ControlListModel::SKIP_BACK_BUTTON,
+                                    ControlListModel::PLAY_BUTTON,
+                                    ControlListModel::SKIP_FW_BUTTON,
+                                    ControlListModel::NEXT_BUTTON
+                                },
+                                {
+
+                                },
+                                {
+                                    ControlListModel::VOLUME,
+                                    ControlListModel::AUDIO_TRACK_BUTTON,
+                                    ControlListModel::EXTENDED_BUTTON,
+                                    ControlListModel::PLAYLIST_BUTTON
+                                }
+                            }
+                        }
+                    },
+                    {
+                        PlayerControlbarModel::Miniplayer,
+                        {
+                            {
+                                {
+                                    ControlListModel::ARTWORK_INFO
+                                },
+                                {
+                                    ControlListModel::PREVIOUS_BUTTON,
+                                    ControlListModel::PLAY_BUTTON,
+                                    ControlListModel::NEXT_BUTTON
+                                },
+                                {
+                                    ControlListModel::VOLUME,
+                                    ControlListModel::PLAYER_SWITCH_BUTTON
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            {
                 Style::DEFAULT_STYLE,
                 N_("Default Style"),
                 {

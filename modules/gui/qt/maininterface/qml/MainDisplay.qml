@@ -77,12 +77,9 @@ FocusScope {
     }
 
     Component.onCompleted: {
-        if (MainCtx.canShowVideoPIP) {
-            pipPlayerComponent.createObject(this)
-        } else {
-            if (MainCtx.hasEmbededVideo)
-                MainPlaylistController.stop()
-        }
+        // the video plays in the mini player card (LibraryMiniPlayer)
+        if (!MainCtx.canShowVideoPIP && MainCtx.hasEmbededVideo)
+            MainPlaylistController.stop()
 
         if (History.previousEmpty) {
             History.update(["home"])
@@ -119,6 +116,12 @@ FocusScope {
         }, {
             name: "network",
             url: "qrc:///qt/qml/VLC/Network/BrowseDisplay.qml"
+        }, {
+            name: "playlists",
+            url: "qrc:///qt/qml/VLC/MediaLibrary/PlaylistsDisplay.qml"
+        }, {
+            name: "recent",
+            url: "qrc:///qt/qml/VLC/MediaLibrary/RecentDisplay.qml"
         }, {
             name: "discover",
             url: "qrc:///qt/qml/VLC/Network/DiscoverDisplay.qml"
@@ -1048,8 +1051,16 @@ FocusScope {
         }
     }
 
+    // the mini player of the redesign: a card in a bottom corner
+    LibraryMiniPlayer {
+        id: miniPlayerCard
+        z: 4
+    }
+
     MiniPlayer {
         id: miniPlayer
+
+        suppressed: true
 
         anchors.left: parent.left
         anchors.right: parent.right

@@ -200,10 +200,11 @@ QtObject {
     readonly property int gridCover_music_border: MainCtx.dp(3, scale)
 
     readonly property int gridCover_video_width: colWidth(2)
-    readonly property int gridCover_video_height: ( gridCover_video_width * 10.0 ) / 16
+    // 16:9 thumbnails of the redesign
+    readonly property int gridCover_video_height: ( gridCover_video_width * 9.0 ) / 16
     readonly property int gridCover_video_border: MainCtx.dp(4, scale)
 
-    readonly property int gridCover_radius: MainCtx.dp(4, scale)
+    readonly property int gridCover_radius: MainCtx.dp(6, scale)
 
     readonly property int expandCover_music_height: MainCtx.dp(171, scale)
     readonly property int expandCover_music_width: MainCtx.dp(171, scale)
@@ -229,7 +230,7 @@ QtObject {
 
     // NOTE: This property should be applied on ExpandGridView and TableView. We should provision
     //       enough space to fit the TableView section labels and 'contextButton'.
-    readonly property int column_margin: MainCtx.dp(32, scale)
+    readonly property int column_margin: MainCtx.dp(20, scale)
     readonly property int column_spacing: column_margin
 
     // NOTE: For the grid layout, there is an additional spacing, defined by the verticalSpacing of the ExpandGridView

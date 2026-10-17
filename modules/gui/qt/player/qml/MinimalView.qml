@@ -42,6 +42,16 @@ FocusScope {
         colorSet: ColorContext.Window
     }
 
+    // the redesign keeps the thin frame of the window around the video
+    readonly property real _frame: (MainCtx.intfMainWindow.visibility === Window.FullScreen) ? 0
+                                                                                             : VLCStyle.dp(10, VLCStyle.scale)
+
+    Rectangle {
+        anchors.fill: parent
+        visible: MainCtx.hasEmbededVideo && root._frame > 0
+        color: PanelStyle.colors(theme.palette?.isDark ?? true).window
+    }
+
     VideoSurface {
         id: videoSurface
 
@@ -52,6 +62,7 @@ FocusScope {
         visible: MainCtx.hasEmbededVideo
 
         anchors.fill: parent
+        anchors.margins: root._frame
 
         onMouseMoved: {
             mouseAutoHide.restart()

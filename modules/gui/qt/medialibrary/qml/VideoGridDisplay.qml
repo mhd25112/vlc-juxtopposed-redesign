@@ -102,7 +102,6 @@ Widgets.ExpandGridItemView {
                   gridView.expandIndex !== gridItem.index) ? 0.7 : 1
 
         // FIXME: Sometimes MLBaseModel::getDataAt returns {} so we use 'isNew === true'.
-        showNewIndicator: (model.isNew === true)
 
         dragItem: gridView.dragItem
 

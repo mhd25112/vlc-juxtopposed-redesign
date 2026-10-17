@@ -58,6 +58,9 @@ T.ItemDelegate {
 
     property alias fillMode: picture.fillMode
 
+    // watched or started: a dimmer title, as in the redesign
+    property bool dimmed: false
+
     property alias title: titleLabel.text
     property alias subtitle: subtitleTxt.text
     property alias subtitleVisible: subtitleTxt.visible
@@ -357,9 +360,15 @@ T.ItemDelegate {
                 id: titleLabel
 
                 height: implicitHeight
+
+                // the redesign's lighter titles
+                font.pixelSize: VLCStyle.dp(15, VLCStyle.scale)
+                font.weight: Font.Normal
+
                 color: root.selected
                     ? theme.fg.highlight
-                    : theme.fg.primary
+                    : (root.dimmed ? PanelStyle.colors((theme.palette?.isDark ?? true)).dim
+                                   : PanelStyle.colors((theme.palette?.isDark ?? true)).text)
             }
         }
 
@@ -371,7 +380,8 @@ T.ItemDelegate {
             elide: Text.ElideRight
             color: root.selected
                 ? theme.fg.highlight
-                : theme.fg.secondary
+                : PanelStyle.colors((theme.palette?.isDark ?? true)).label
+            font.pixelSize: VLCStyle.dp(13, VLCStyle.scale)
 
             Layout.preferredWidth: Math.min(root.width, implicitWidth)
             Layout.alignment: root.textAlignHCenter ? Qt.AlignCenter : Qt.AlignLeft

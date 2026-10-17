@@ -90,6 +90,8 @@ class VideoSurface : public ViewBlockingRectangle
     Q_OBJECT
     Q_PROPERTY(VideoSurfaceProvider* videoSurfaceProvider READ videoSurfaceProvider WRITE setVideoSurfaceProvider NOTIFY videoSurfaceProviderChanged FINAL)
     Q_PROPERTY(Qt::CursorShape cursorShape READ getCursorShape WRITE setCursorShape RESET unsetCursor FINAL)
+    // false: a double click is not passed to the video (it toggles fullscreen)
+    Q_PROPERTY(bool doubleClickEnabled MEMBER m_doubleClickEnabled NOTIFY doubleClickEnabledChanged FINAL)
 
 public:
     VideoSurface( QQuickItem* parent = nullptr );
@@ -128,6 +130,7 @@ signals:
     void keyPressed(int key, Qt::KeyboardModifiers modifier);
 
     void videoSurfaceProviderChanged();
+    void doubleClickEnabledChanged();
 
 protected slots:
     void synchronize();
@@ -138,6 +141,8 @@ private:
     WheelToVLCConverter m_wheelEventConverter;
 
     QPointer<VideoSurfaceProvider> m_provider;
+
+    bool m_doubleClickEnabled = true;
 
     QMetaObject::Connection m_synchConnection;
 

@@ -389,4 +389,10 @@ Item {
             }
         }
     }
+
+    // Dialogs of the redesign, opened from anywhere through
+    // PlayerTweaks.requestDialog(name)
+    RedesignDialogs {
+        id: redesignDialogs
+    }
 }

@@ -29,6 +29,7 @@ import VLC.Playlist
 import VLC.Widgets as Widgets
 import VLC.Menus as Menus
 import VLC.Util
+import VLC.Player
 
 T.ToolBar {
     id: root
@@ -66,17 +67,17 @@ T.ToolBar {
         colorSet: ColorContext.Window
     }
 
-    background:  Widgets.AcrylicBackground {
-        enabled: root.useAcrylic
-        tintColor: theme.bg.primary
+    // solid, like the title bar of the redesign
+    background: Rectangle {
+        color: theme.bg.primary
     }
 
+    // Title bar of the redesign: the cone, the main menu and the navigation
+    // toggle on the left, what plays in the middle, the window buttons on the
+    // right.
     contentItem: Item {
-
-        implicitHeight: VLCStyle.globalToolbar_height
-        implicitWidth: navigationButtons.implicitWidth
-                     + playqueueButtonsTop.implicitWidth
-                     + VLCStyle.margin_xsmall * 2
+        implicitHeight: VLCStyle.dp(40, VLCStyle.scale)
+        implicitWidth: navigationButtons.implicitWidth + VLCStyle.margin_xsmall * 2
 
         Item {
             id: navigationButtons
@@ -96,64 +97,70 @@ T.ToolBar {
                 id: navigationButtonsRow
 
                 anchors.verticalCenter: parent.verticalCenter
-                spacing: VLCStyle.margin_normal
+
+                spacing: VLCStyle.dp(4, VLCStyle.scale)
 
                 Navigation.parentItem: root
                 Navigation.rightItem: playqueueButtonsTop
 
-                Widgets.IconToolButton {
-                    id: navigationVisibilty
+                Widgets.BannerCone {
+                    id: logo
+
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: VLCStyle.dp(30, VLCStyle.scale)
+                    height: VLCStyle.dp(22, VLCStyle.scale)
+                    sourceSize.width: VLCStyle.dp(22, VLCStyle.scale)
+                    sourceSize.height: VLCStyle.dp(22, VLCStyle.scale)
+                    color: theme.accent
+                }
+
+                Widgets.SvgToolButton {
+                    id: menuBtn
 
                     focus: true
+                    iconName: "more"
+                    description: qsTr("Menu")
+                    checked: mainMenu.visible
+                    width: VLCStyle.dp(34, VLCStyle.scale)
+                    height: VLCStyle.dp(34, VLCStyle.scale)
 
-                    text: VLCIcons.panel_left
+                    onClicked: mainMenu.show(menuBtn)
+
+                    Widgets.AppMainMenu {
+                        id: mainMenu
+                    }
+
+                    Navigation.parentItem: navigationButtons
+                    Navigation.rightItem: navigationVisibilty
+                }
+
+                Widgets.SvgToolButton {
+                    id: navigationVisibilty
+
+                    iconName: checked ? "sidebar_open" : "sidebar"
                     description: qsTr("Show navigation menu")
-
                     AccessibleCompat.id: "sidebarToggleButton"
-
-                    font.pixelSize: VLCStyle.icon_banner
-                    height: VLCStyle.bannerButton_height
-                    width: VLCStyle.bannerButton_width
+                    width: VLCStyle.dp(34, VLCStyle.scale)
+                    height: VLCStyle.dp(34, VLCStyle.scale)
 
                     onClicked: root.toggleNavigationVisibility()
 
                     Navigation.parentItem: navigationButtons
-                    Navigation.rightItem: historyBack
-                }
-
-                Widgets.IconToolButton {
-                    id: historyBack
-
-                    font.pixelSize: VLCStyle.icon_banner
-                    text: VLCIcons.back
-                    description: qsTr("Previous")
-
-                    AccessibleCompat.id: "historyBackButton"
-
-                    height: VLCStyle.bannerButton_height
-                    width: VLCStyle.bannerButton_width
-
-                    onClicked: History.previous()
-                    enabled: !History.previousEmpty
-
-                    onEnabledChanged: {
-                        if (historyBack.activeFocus)
-                            navigationVisibilty.focus = true
-                    }
-
-                    Navigation.parentItem: navigationButtons
-                    Navigation.leftItem: navigationVisibilty
-                    Navigation.rightItem: playlistBtn
-                }
-
-                Widgets.BannerCone {
-                    id: logo
-
-                    sourceSize.width: VLCStyle.bannerButton_height
-                    sourceSize.height: VLCStyle.bannerButton_height
-                    color: theme.accent
+                    Navigation.leftItem: menuBtn
                 }
             }
+        }
+
+        // what plays, or the name of the application
+        Text {
+            anchors.centerIn: parent
+            width: Math.min(implicitWidth, parent.width - 2 * Math.max(navigationButtons.width, playqueueButtonsTop.width) - VLCStyle.margin_large)
+
+            text: (Player.title !== "") ? Player.title : qsTr("VLC Media Player")
+            elide: Text.ElideRight
+            horizontalAlignment: Text.AlignHCenter
+            font.pixelSize: VLCStyle.dp(13, VLCStyle.scale)
+            color: PanelStyle.colors((theme.palette?.isDark ?? true)).text
         }
 
         Item {
@@ -178,52 +185,39 @@ T.ToolBar {
                 id: playqueueButtonsTopRow
 
                 anchors.verticalCenter: parent.verticalCenter
-                spacing: VLCStyle.margin_normal
+
+                spacing: VLCStyle.dp(4, VLCStyle.scale)
 
                 Navigation.parentItem: root
                 Navigation.leftItem: navigationButtons
 
+                // the play queue opens from the mini player
                 PlaylistPane.PlaylistToggleButton {
                     id: playlistBtn
 
+                    visible: false
                     plListView: root.plListView
 
-                    Navigation.parentItem: playqueueButtonsTop
-                    Navigation.rightItem: menuBtn
-                    Navigation.leftItem: historyBack
-
-                    onClicked:  root.togglePlayqueueVisibility()
+                    onClicked: root.togglePlayqueueVisibility()
                 }
 
-                Widgets.IconToolButton {
-                    id: menuBtn
-
-                    visible: !MainCtx.hasToolbarMenu
-                    font.pixelSize: VLCStyle.icon_banner
-                    text: VLCIcons.more
-                    description: qsTr("Menu")
-                    width: VLCStyle.bannerButton_width
-                    height: VLCStyle.bannerButton_height
-                    checked: contextMenu.shown
-
-                    Navigation.parentItem: playqueueButtonsTop
-                    Navigation.leftItem: playlistBtn
-
-                    onClicked: contextMenu.popup(this.mapToGlobal(0, height))
-
-                    Menus.QmlGlobalMenu {
-                        id: contextMenu
-                        ctx: MainCtx
-                    }
+                Widgets.SvgToolButton {
+                    iconName: "fullscreen"
+                    description: qsTr("Fullscreen")
+                    width: VLCStyle.dp(36, VLCStyle.scale)
+                    height: VLCStyle.dp(34, VLCStyle.scale)
+                    visible: root._showCSD
+                    onClicked: MainCtx.toggleInterfaceFullScreen()
                 }
             }
         }
 
         Loader {
             z: -1
-
             anchors.fill: parent
+
             active: root._showCSD
+
             sourceComponent: Widgets.CSDTitlebarTapNDrapHandler {
             }
         }
@@ -239,7 +233,7 @@ T.ToolBar {
             top: parent.top
         }
 
-        height: VLCStyle.globalToolbar_height
+        height: VLCStyle.dp(40, VLCStyle.scale)
         active: root._showCSD
         source: VLCStyle.palette.hasCSDImage
                   ? "qrc:///qt/qml/VLC/Widgets/CSDThemeButtonSet.qml"

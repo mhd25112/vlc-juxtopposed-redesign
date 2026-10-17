@@ -24,10 +24,11 @@ import VLC.Style
 import VLC.Util
 
 
-Widgets.IconToolButton {
+Widgets.SvgToolButton {
     id: playlistBtn
 
-    text: VLCIcons.playlist
+    iconName: "queue"
+
     onClicked: {
         MainCtx.playqueuePanel.visible = !MainCtx.playqueuePanel.visible
         if (MainCtx.playqueuePanel.visible && MainCtx.playqueuePanel.docked) {

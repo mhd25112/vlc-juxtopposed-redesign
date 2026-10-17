@@ -78,27 +78,59 @@ T.Pane {
       console.assert(contentItem === root.row)
     }
 
+    // "Continue Watching >": the title of the section, the arrow and the
+    // title both show all of its items
     RowLayout {
         id: row
 
         anchors.fill: parent
 
-        SubtitleLabel {
-            id: label
+        T.AbstractButton {
+            id: titleButton
 
             Layout.fillWidth: true
+            Layout.maximumWidth: implicitWidth
 
-            color: theme.fg.primary
+            implicitWidth: titleRow.implicitWidth
+            implicitHeight: titleRow.implicitHeight
+
+            enabled: button.visible
+            onClicked: root.seeAllButtonClicked(Qt.MouseFocusReason)
+
+            contentItem: Row {
+                id: titleRow
+
+                spacing: VLCStyle.dp(8, VLCStyle.scale)
+
+                Text {
+                    id: label
+
+                    anchors.verticalCenter: parent.verticalCenter
+                    font.pixelSize: VLCStyle.dp(20, VLCStyle.scale)
+                    color: titleButton.hovered ? PanelStyle.colors((theme.palette?.isDark ?? true)).bright
+                                               : PanelStyle.colors((theme.palette?.isDark ?? true)).text
+                    elide: Text.ElideRight
+                }
+
+                PanelIcon {
+                    anchors.verticalCenter: parent.verticalCenter
+                    name: "chevron_right"
+                    size: VLCStyle.dp(18, VLCStyle.scale)
+                    color: label.color
+                    visible: titleButton.enabled
+                }
+            }
         }
 
+        Item { Layout.fillWidth: true }
+
+        // kept for its users, the title row above does its job
         TextToolButton {
             id: button
 
             visible: false
-
-            Layout.preferredWidth: implicitWidth
-
-            focus: true
+            opacity: 0
+            Layout.preferredWidth: 0
 
             Binding on focusReason {
                 // NOTE: This is an explicit binding so that it does not get overridden:
@@ -106,11 +138,7 @@ T.Pane {
             }
 
             text: qsTr("See All")
-
-            font.pixelSize: VLCStyle.fontSize_large
-
             Navigation.parentItem: root
-
             onClicked: root.seeAllButtonClicked(focusReason)
         }
     }

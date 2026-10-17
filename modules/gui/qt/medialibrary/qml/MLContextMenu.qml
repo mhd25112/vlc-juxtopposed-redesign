@@ -53,66 +53,88 @@ NativeMenu {
 
     // Settings
 
+    // the items, names and icons of the redesign's file menu
     actions: [{
             "text": qsTr("Play"),
+            "icon": "play_filled",
             "action": addAndPlay
         }, {
-            "text": qsTr("Play as audio"),
+            "text": qsTr("Play as Audio"),
+            "icon": "audio",
             "action": playAsAudio,
             "visible": root.showPlayAsAudioAction
         }, {
-            "text": qsTr("Play as album"),
+            "text": qsTr("Play as Album"),
+            "icon": "music",
             "action": playAsAlbum,
             "visible": root.showPlayAsAlbumAction &&
                        (root.model instanceof MLAudioModel)
         }, {
-            "text": qsTr("Enqueue"),
+            "text": qsTr("Mark as Watched"),
+            "icon": "check",
+            "action": markSeen,
+            "visible": _showSeen
+        }, {
+            "text": qsTr("Mark as Unwatched"),
+            "icon": "eye_off",
+            "action": markUnseen,
+            "visible": _showUnseen
+        }, {
+            "text": qsTr("Favorite"),
+            "icon": "heart",
+            "action": addFavorite,
+            "visible": _showAddFavorite
+        }, {
+            "text": qsTr("Remove from Favorites"),
+            "icon": "heart",
+            "action": removeFavorite,
+            "visible": _showRemoveFavorite
+        }, {
+            "text": qsTr("Stream"),
+            "icon": "stream",
+            "action": stream,
+            "visible": _hasMrl
+        }, {
+            "text": qsTr("Convert"),
+            "icon": "convert",
+            "action": convert,
+            "visible": _hasMrl
+        }, {
+            "text": qsTr("Add to Queue"),
+            "icon": "queue",
             "action": enqueue
         }, {
-            "text": qsTr("Enqueue as album"),
+            "text": qsTr("Add Album to Queue"),
+            "icon": "queue",
             "action": enqueueAsAlbum,
             "visible": root.showPlayAsAlbumAction &&
                        (root.model instanceof MLAudioModel)
         }, {
-            "text": qsTr("Add to favorites"),
-            "action": addFavorite,
-            "visible": _showAddFavorite
-        }, {
-            "text": qsTr("Remove from favorites"),
-            "action": removeFavorite,
-            "visible": _showRemoveFavorite
-        }, {
-            "text": (root.showPlayAsAudioAction ? qsTr("Add to a video-only playlist") : qsTr("Add to an audio-only playlist")),
-            "action": (root.showPlayAsAudioAction ? root.addToVideoOnlyPlaylist : root.addToAudioOnlyPlaylist)
-        }, {
-            "text": qsTr("Add to a playlist"),
+            "text": qsTr("Add to Playlist"),
+            "icon": "playlists",
             "action": addToAPlaylist
         }, {
-            "text": qsTr("Mark as seen"),
-            "action": markSeen,
-            "visible": _showSeen
+            "text": (root.showPlayAsAudioAction ? qsTr("Add to a Video-Only Playlist") : qsTr("Add to an Audio-Only Playlist")),
+            "icon": "playlists",
+            "action": (root.showPlayAsAudioAction ? root.addToVideoOnlyPlaylist : root.addToAudioOnlyPlaylist)
         }, {
-            "text": qsTr("Mark as unseen"),
-            "action": markUnseen,
-            "visible": _showUnseen
-        }, {
-            "text": qsTr("Open Containing Folder"),
+            "text": (Qt.platform.os === "windows") ? qsTr("Show in File Explorer") : qsTr("Show in Folder"),
+            "icon": "folder",
             "action": openContainingFolder,
             "visible": _openContainingFolder
         }, {
-            "text": qsTr("Delete"),
-            "action": deleteStream,
-            "visible": _deleteStream
+            "text": qsTr("Go to Source"),
+            "icon": "arrow_right",
+            "action": goToSource,
+            "visible": _hasLocalFile
         }, {
-            "text": qsTr("Information"),
-            "action": _signalShowInformation,
-            "visible": showInformationAvailable
-        },{
-            "text": qsTr("Delete File From System"),
-            "action": deleteFileFromSource,
-            "visible": _deleteFileFromSource
-        },{
-            "text": qsTr("Media Information"),
+            "text": qsTr("Add Subtitle Tracks"),
+            "icon": "subtitles",
+            "action": addSubtitles,
+            "visible": _hasLocalFile
+        }, {
+            "text": qsTr("Properties & Metadata"),
+            "icon": "info",
             "action": function(dataList, options, indexes) {
                 DialogsProvider.mediaInfoDialog(dataList[0][idDataRole])
             },
@@ -120,8 +142,51 @@ NativeMenu {
                 return (dataList.length === 1)
                         && !(dataList[0][idDataRole].hasParent())
             }
+        }, {
+            "text": qsTr("Details"),
+            "icon": "metadata",
+            "action": _signalShowInformation,
+            "visible": showInformationAvailable
+        }, {
+            "text": qsTr("Remove from the Library"),
+            "icon": "trash",
+            "separator": true,
+            "action": deleteStream,
+            "visible": _deleteStream
+        },{
+            "text": qsTr("Delete File From System"),
+            "icon": "trash",
+            "separator": true,
+            "action": deleteFileFromSource,
+            "visible": _deleteFileFromSource
         }
     ]
+
+    // Stream and Convert: the dialogs of the media
+    function stream(dataList, options, indexes) {
+        DialogsProvider.streamingDialog(dataList.map((d) => d.mrl), true)
+    }
+
+    function convert(dataList, options, indexes) {
+        DialogsProvider.streamingDialog(dataList.map((d) => d.mrl), false)
+    }
+
+    // the library's folder of the file
+    function goToSource(dataList, options, indexes) {
+        PlayerTweaks.locateFolder(dataList[0].mrl)
+    }
+
+    function addSubtitles(dataList, options, indexes) {
+        PlayerTweaks.requestDialog("subtitles", dataList[0].mrl)
+    }
+
+    function _hasMrl(dataList, options, indexes) {
+        return dataList.length > 0 && dataList.every((d) => !!d.mrl && String(d.mrl) !== "")
+    }
+
+    function _hasLocalFile(dataList, options, indexes) {
+        return dataList.length === 1 && !!dataList[0].mrl && String(dataList[0].mrl).startsWith("file:")
+    }
 
     // Events
 

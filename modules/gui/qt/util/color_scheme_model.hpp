@@ -28,6 +28,7 @@ class ColorSchemeModel : public QAbstractListModel
     Q_OBJECT
     Q_PROPERTY(QString current READ currentText NOTIFY currentChanged FINAL)
     Q_PROPERTY(ColorScheme scheme READ currentScheme NOTIFY currentChanged FINAL)
+    Q_PROPERTY(int currentIndex READ currentIndex WRITE setCurrentIndex NOTIFY currentChanged FINAL)
 
 public:
     enum ColorScheme
@@ -59,6 +60,9 @@ public:
     QVector<Item> getSchemes() const;
 
     ColorScheme currentScheme() const;
+
+    // picks the entry of a scheme, if the platform has it
+    Q_INVOKABLE void setScheme(ColorScheme scheme);
 
 signals:
     void currentChanged();

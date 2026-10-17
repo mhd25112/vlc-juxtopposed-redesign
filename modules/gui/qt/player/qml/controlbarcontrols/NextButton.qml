@@ -23,10 +23,12 @@ import VLC.Style
 import VLC.Playlist
 import VLC.Util
 
-Widgets.IconToolButton {
+Widgets.SvgToolButton {
     id: nextBtn
 
-    text: VLCIcons.next
+    iconName: "next"
+    iconScale: 0.8
+
     enabled: MainPlaylistController.hasNext
     onClicked: MainPlaylistController.next()
     description: qsTr("Next")

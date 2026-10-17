@@ -48,6 +48,8 @@ FSM {
     //incoming signals
     signal askShow()
     signal mouseMove()
+    // the pointer moved over the video, away from the toolbars
+    signal mouseAway()
     signal keyboardMove()
     signal lock()
     signal unlock()
@@ -67,6 +69,7 @@ FSM {
     signalMap: ({
         askShow: fsm.askShow,
         mouseMove: fsm.mouseMove,
+        mouseAway: fsm.mouseAway,
         keyboardMove: fsm.keyboardMove,
         lock: fsm.lock,
         timeout: fsm.timeout,
@@ -125,6 +128,11 @@ FSM {
                         target: fsmHidden,
                     },
                     timeout: {
+                        target: fsmHidden,
+                    },
+                    // NOTE: Locked toolbars (hovered, menu opened) ignore this.
+                    mouseAway: {
+                        guard: () => !Player.isInteractive,
                         target: fsmHidden,
                     },
                     mouseMove: {

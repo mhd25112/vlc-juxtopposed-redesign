@@ -38,12 +38,17 @@ QtObject {
         "visible" - (Boolean or function(dataList,options, indexes) -> Boolean) (optional) a boolean value or function which
                     controls whether the action is shown in the menu following 'popup' call
 
+        "icon" - (string) (optional) the icon of the redesign shown before the text (see PanelStyle.icon)
+
+        "separator" - (Boolean) (optional) a line before the action
+
        e.g see MLContextMenu.qml
     **/
 
     property var actions: []
 
-    property alias visible: menu.visible
+    // the menu of the redesign (Widgets.PanelMenu) shows the actions
+    readonly property bool visible: _menu !== null && _menu.visible
 
     readonly property int currentRequest: _currentRequest
 
@@ -82,7 +87,7 @@ QtObject {
 
         _dataList = data
 
-        const textStrings = []
+        const entries = []
         _effectiveActions = []
         for (let i in actions) {
             const action = actions[i]
@@ -90,12 +95,26 @@ QtObject {
             if (!action.hasOwnProperty("visible")
                     || (typeof action.visible === "boolean" && action.visible)
                     || (typeof action.visible === "function" && action.visible(_dataList, _options, _indexes))) {
+                const index = _effectiveActions.length
                 _effectiveActions.push(action)
-                textStrings.push(action.text)
+                if (action.separator && entries.length > 0)
+                    entries.push({ separator: true })
+                entries.push({ text: action.text, icon: action.icon ?? "",
+                               action: () => root._executeAction(index) })
             }
         }
 
-        menu.popup(_popupPoint, textStrings)
+        if (!_menu) {
+            const window = MainCtx.intfMainWindow
+            const component = Qt.createComponent("qrc:///qt/qml/VLC/Widgets/PanelMenu.qml")
+            if (component.status !== Component.Ready || !window || !window.contentItem) {
+                console.warn("NativeMenu: no menu", component.errorString())
+                return
+            }
+            _menu = component.createObject(window.contentItem, { parent: window.contentItem })
+        }
+        _menu.model = entries
+        _menu.popup(_popupPoint)
     }
 
     function _executeAction(index) {
@@ -104,13 +123,10 @@ QtObject {
     }
 
 
-    readonly property StringListMenu _menu: StringListMenu {
-        id: menu
+    property var _menu: null
 
-        ctx: MainCtx
-
-        onSelected: (index, _) => {
-            root._executeAction(index)
-        }
+    Component.onDestruction: {
+        if (_menu)
+            _menu.destroy()
     }
 }

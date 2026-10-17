@@ -46,10 +46,26 @@ T.Pane {
 
     bottomPadding: VLCStyle.margin_xsmall
 
+    // NOTE: With the slider at the bottom, sliderY is the top of the controls,
+    //       popups and the play queue are positioned against it.
     readonly property real sliderY: mapFromItem(contentItem, 0, contentItem.sliderY).y
     property int textPosition: ControlBar.TimeTextPosition.AboveSlider
+    // Place the position slider under the buttons, as a thick bar running along
+    // the bottom edge, instead of above them:
+    property bool sliderAtBottom: false
+    // Place the position slider between the left and right buttons, making the
+    // whole control bar a single row. Layouts with center controls have no room
+    // for it, they fall back to sliderAtBottom.
+    property bool sliderInline: false
+    readonly property bool _sliderInline: sliderInline && (contentItem?.playerControlLayout?.canHostFillItem ?? false)
+    readonly property bool _sliderOutsideTop: sliderAtBottom || _sliderInline
     property int identifier: -1
     property real sliderHeight: VLCStyle.heightBar_xxsmall
+    // flat seek bar of the redesign, see SliderBar.flatStyle
+    property bool flatSlider: false
+
+    // "Customize Player": the controls in frames, to be moved around
+    property bool editMode: false
     property real bookmarksHeight: VLCStyle.controlBarBookmarksHeight
     property bool showRemainingTime: true
 
@@ -99,16 +115,26 @@ T.Pane {
         colorSet: ColorContext.Window
     }
 
+    // the redesign's times, always with the hours: 00:02:10
+    function _hms(tick) {
+        if (!tick.valid())
+            return "--:--:--"
+        const total = Math.max(0, tick.toSeconds())
+        const pad = (n) => String(n).padStart(2, "0")
+        return pad(Math.floor(total / 3600)) + ":" + pad(Math.floor(total / 60) % 60) + ":" + pad(total % 60)
+    }
+
     TextMetrics {
         id: timeTextMetrics
-        font.pixelSize: (textPosition === ControlBar.TimeTextPosition.LeftRightSlider) ? VLCStyle.fontSize_small
-                                                                                       : VLCStyle.fontSize_normal
+        font.pixelSize: root.flatSlider ? VLCStyle.dp(14, VLCStyle.scale)
+                                        : (textPosition === ControlBar.TimeTextPosition.LeftRightSlider) ? VLCStyle.fontSize_small
+                                                                                                         : VLCStyle.fontSize_normal
         text: {
             // This text metrics is used for both the time and length, as we want them to have the same width.
             // Length might not be reported in some cases, for that reason we should check both and use the bigger one.
 
             // Some extra space to compensate non-monospaced fonts ("-" takes more space than ":", double "-" for guarantee)
-            return (Player.time.isSubHour() && Player.length.isSubHour()) ? "00--00" : "00--00--00"
+            return (!root.flatSlider && Player.time.isSubHour() && Player.length.isSubHour()) ? "00--00" : "00--00--00"
         }
     }
 
@@ -119,7 +145,30 @@ T.Pane {
     contentItem: ColumnLayout {
         spacing: VLCStyle.margin_xsmall
 
-        readonly property real sliderY: row2.y
+        readonly property real sliderY: {
+            if (!root._sliderOutsideTop)
+                return row2.y
+            if (root._sliderInline)
+                return playerControlLayout.y
+            return playerControlLayout.visible ? playerControlLayout.y : bottomRow.y
+        }
+
+        // Items of the row holding the position slider, the time labels
+        // go on its sides unless they are hidden or shown above it:
+        function sliderRowItems() {
+            switch (textPosition) {
+            case ControlBar.TimeTextPosition.Hide:
+                return [trackPositionSlider]
+            case ControlBar.TimeTextPosition.AboveSlider:
+                // There is no "above" when the slider is not the top row
+                return root._sliderOutsideTop ? [mediaTime, trackPositionSlider, mediaRemainingTime]
+                                              : [trackPositionSlider]
+            case ControlBar.TimeTextPosition.LeftRightSlider:
+                return [mediaTime, trackPositionSlider, mediaRemainingTime]
+            default:
+                return []
+            }
+        }
 
         property alias trackPositionSlider: trackPositionSlider
 
@@ -134,6 +183,8 @@ T.Pane {
                 Layout.preferredWidth: (textPosition === ControlBar.TimeTextPosition.LeftRightSlider) ? timeTextMetrics.width : -1
 
                 text: {
+                    if (root.flatSlider)
+                        return root._hms(Player.time)
                     const length = Player.length
                     return Player.time.formatHMS(length.isSubSecond() ? VLCTick.SubSecondFormattedAsMS : 0)
                 }
@@ -160,9 +211,11 @@ T.Pane {
 
                 readonly property bool showRemainingTime: (MainCtx.showRemainingTime && Player.remainingTime.valid())
 
-                text: showRemainingTime
-                      ? "-" + Player.remainingTime.formatHMS()
-                      : Player.length.formatHMS()
+                text: root.flatSlider
+                      ? (showRemainingTime ? "-" + root._hms(Player.remainingTime) : root._hms(Player.length))
+                      : showRemainingTime
+                        ? "-" + Player.remainingTime.formatHMS()
+                        : Player.length.formatHMS()
                 color: mediaTime.color
                 font: timeTextMetrics.font
                 horizontalAlignment: Text.AlignHCenter
@@ -218,6 +271,7 @@ T.Pane {
                 id: trackPositionSlider
 
                 barHeight: root.sliderHeight
+                flatStyle: root.flatSlider
 
                 Accessible.role: Accessible.Slider
                 Accessible.name: qsTr("Progress")
@@ -227,7 +281,8 @@ T.Pane {
                 enabled: Player.playingState === Player.PLAYING_STATE_PLAYING || Player.playingState === Player.PLAYING_STATE_PAUSED
 
                 Navigation.parentItem: root
-                Navigation.downItem: playerControlLayout
+                Navigation.upItem: (root.sliderAtBottom && !root._sliderInline) ? playerControlLayout : null
+                Navigation.downItem: root._sliderOutsideTop ? null : playerControlLayout
 
                 activeFocusOnTab: true
 
@@ -244,15 +299,43 @@ T.Pane {
                 active: MainCtx.mediaLibraryAvailable
                 source: "qrc:///qt/qml/VLC/MediaLibrary/Bookmarks.qml"
 
-                x: root.leftPadding + trackPositionSlider.x + row2.Layout.leftMargin
-                y: row2.y + row2.height + VLCStyle.margin_xxsmall
+                readonly property Item sliderRow: root._sliderInline ? inlineRow
+                                                                     : (root.sliderAtBottom ? bottomRow : row2)
+
+                // Position of the slider in the control bar, it is nested in the
+                // controls when it is inline:
+                readonly property point sliderPos: {
+                    // dependencies of the mapping:
+                    void(root.width); void(root.height); void(playerControlLayout.y)
+                    void(trackPositionSlider.x); void(trackPositionSlider.y); void(trackPositionSlider.parent)
+                    return root.mapFromItem(trackPositionSlider, 0, 0)
+                }
+
+                // NOTE: Bookmarks go between the slider and the buttons, which
+                //       is above the slider when it is not the top row.
+                x: sliderPos.x
+                y: root._sliderOutsideTop ? (sliderPos.y - root.bookmarksHeight - VLCStyle.margin_xxsmall)
+                                          : (row2.y + row2.height + VLCStyle.margin_xxsmall)
                 width: trackPositionSlider.width
 
                 onLoaded: {
                    item.barHeight = Qt.binding(function() { return bookmarksHeight })
                    item.controlBarHovered = Qt.binding(function() { return root.hovered })
-                   item.yShift = Qt.binding(function() { return row2.height + VLCStyle.margin_xxsmall })
+                   item.yShift = Qt.binding(function() {
+                       return root._sliderOutsideTop ? 0 : row2.height + VLCStyle.margin_xxsmall
+                   })
                 }
+            },
+            // Row of the slider when it is inline, hosted by playerControlLayout
+            RowLayout {
+                id: inlineRow
+
+                children: root._sliderInline ? root.contentItem.sliderRowItems() : []
+
+                spacing: VLCStyle.margin_small
+
+                width: parent ? parent.width : 0
+                y: parent ? Math.round((parent.height - height) / 2) : 0
             }
         ]
 
@@ -275,7 +358,7 @@ T.Pane {
             children: {
                 switch (textPosition) {
                 case ControlBar.TimeTextPosition.AboveSlider:
-                    return [mediaTime, mediaRemainingTime]
+                    return root._sliderOutsideTop ? [] : [mediaTime, mediaRemainingTime]
                 case ControlBar.TimeTextPosition.Hide:
                 case ControlBar.TimeTextPosition.LeftRightSlider:
                 default:
@@ -287,17 +370,7 @@ T.Pane {
         RowLayout {
             id: row2
 
-            children: {
-                switch (textPosition) {
-                case ControlBar.TimeTextPosition.Hide:
-                case ControlBar.TimeTextPosition.AboveSlider:
-                    return [trackPositionSlider]
-                case ControlBar.TimeTextPosition.LeftRightSlider:
-                    return [mediaTime, trackPositionSlider, mediaRemainingTime]
-                default:
-                    return []
-                }
-            }
+            children: root._sliderOutsideTop ? [] : parent.sliderRowItems()
 
             visible: children.length > 0
 
@@ -320,13 +393,19 @@ T.Pane {
             Layout.rightMargin: VLCStyle.margin_large
 
             identifier: root.identifier
+            editMode: root.editMode
 
             implicitHeight: MainCtx.pinVideoControls ? VLCStyle.controlLayoutHeightPinned
                                                      : VLCStyle.controlLayoutHeight
 
-            visible: !model?.empty ?? false
+            visible: root.editMode || (!model?.empty ?? false)
 
-            Navigation.upItem: trackPositionSlider.enabled ? trackPositionSlider : root.Navigation.upItem
+            fillItem: root._sliderInline ? inlineRow : null
+
+            Navigation.upItem: (trackPositionSlider.enabled && !root._sliderOutsideTop) ? trackPositionSlider
+                                                                                        : root.Navigation.upItem
+            Navigation.downItem: (trackPositionSlider.enabled && root.sliderAtBottom && !root._sliderInline) ? trackPositionSlider
+                                                                                                             : null
 
             onRequestLockUnlockAutoHide: (lock) => root.requestLockUnlockAutoHide(lock)
 
@@ -335,6 +414,21 @@ T.Pane {
             Component.onCompleted: {
                 root.forceUnlock.connect(playerControlLayout.forceUnlock)
             }
+        }
+
+        RowLayout {
+            id: bottomRow
+
+            children: (root.sliderAtBottom && !root._sliderInline) ? parent.sliderRowItems() : []
+
+            visible: children.length > 0
+
+            spacing: VLCStyle.margin_small
+
+            Layout.fillWidth: true
+            Layout.fillHeight: false
+            Layout.leftMargin: VLCStyle.margin_large
+            Layout.rightMargin: Layout.leftMargin
         }
     }
 }

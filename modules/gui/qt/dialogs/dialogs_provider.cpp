@@ -212,7 +212,11 @@ void DialogsProvider::customEvent( QEvent *event )
               //popping a QMenu prevents mouse release events to be received,
               //this ensures the coherency of the vout mouse state.
               emit releaseMouseEvents();
-              popupMenu.reset(VLCMenuBar::PopupMenu( p_intf, true ));
+              // the menu of the redesign, drawn by the interface
+              if( p_intf->p_mi && p_intf->p_mi->hasRedesignedPopupMenu() )
+                  emit p_intf->p_mi->popupMenuRequested();
+              else
+                  popupMenu.reset(VLCMenuBar::PopupMenu( p_intf, true ));
            }
            break;
         }

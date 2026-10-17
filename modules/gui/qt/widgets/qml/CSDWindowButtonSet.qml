@@ -31,7 +31,7 @@ Row {
     width: implicitWidth
 
     property color color: theme.fg.primary
-    property color hoverColor: theme.bg.primary.alpha(0.5)
+    property color hoverColor: PanelStyle.colors((theme.palette?.isDark ?? true)).hover
 
     readonly property bool useWinIcons: ((MainCtx.osName === MainCtx.Windows)&&(MainCtx.osVersion >= 10))
 
@@ -70,7 +70,21 @@ Row {
 
             hoverColor: (modelData.type === CSDButton.Close) ? "red" : windowButtonGroup.hoverColor
 
-            isThemeDark: theme.palette.isDark
+            isThemeDark: (theme.palette?.isDark ?? true)
+
+            width: VLCStyle.dp(36, VLCStyle.scale)
+
+            iconName: {
+                switch (modelData.type) {
+                case CSDButton.Minimize:
+                    return "minimize"
+                case CSDButton.MaximizeRestore:
+                    return (MainCtx.intfMainWindow.visibility === Window.Maximized) ? "restore" : "maximize"
+                case CSDButton.Close:
+                    return "close"
+                }
+                return ""
+            }
 
             iconTxt:{
                 switch (modelData.type) {

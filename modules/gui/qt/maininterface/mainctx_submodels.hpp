@@ -103,7 +103,8 @@ signals:
 private:
     QJSValue m_model;
     QString m_criteria;
-    Qt::SortOrder m_order = Qt::DescendingOrder;
+    // the redesign lists by name, A to Z
+    Qt::SortOrder m_order = Qt::AscendingOrder;
     bool m_available = false;
 };
 

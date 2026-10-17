@@ -113,6 +113,8 @@ class MainCtx : public QObject
     Q_PROPERTY(bool hasGridListMode MEMBER m_hasGridListMode NOTIFY hasGridListModeChanged FINAL)
     Q_PROPERTY(Grouping grouping READ grouping WRITE setGrouping NOTIFY groupingChanged FINAL)
     Q_PROPERTY(ColorSchemeModel* colorScheme READ getColorScheme CONSTANT FINAL)
+    // "default", "system" or "#RRGGBB", the "qt-accent-color" option
+    Q_PROPERTY(QString accentColor READ accentColor WRITE setAccentColor NOTIFY accentColorChanged FINAL)
     Q_PROPERTY(bool hasVLM READ hasVLM CONSTANT FINAL)
     Q_PROPERTY(bool clientSideDecoration READ useClientSideDecoration NOTIFY useClientSideDecorationChanged FINAL)
     Q_PROPERTY(bool hasFirstrun READ hasFirstrun CONSTANT FINAL)
@@ -511,6 +513,7 @@ protected:
 #endif
 
     ThreadRunner* m_threadRunner = nullptr;
+    bool m_hasRedesignedPopupMenu = false;
 
 public slots:
     void toggleToolbarMenu();
@@ -553,7 +556,25 @@ protected slots:
     void onInputChanged( bool );
     void onVOutChanged( bool );
 
+public:
+    QString accentColor() const;
+    void setAccentColor(const QString &color);
+
+    // the video menu of the redesign, see Player.qml; set once it is ready
+    Q_PROPERTY(bool hasRedesignedPopupMenu READ hasRedesignedPopupMenu WRITE setHasRedesignedPopupMenu FINAL)
+    bool hasRedesignedPopupMenu() const { return m_hasRedesignedPopupMenu; }
+    void setHasRedesignedPopupMenu(bool has) { m_hasRedesignedPopupMenu = has; }
+    // where the pointer is, in screen coordinates
+    Q_INVOKABLE QPoint cursorPosition() const;
+
+    // asks for a folder and adds it to the media library
+    Q_INVOKABLE void addLibraryFolder();
+    // adds a folder given by its path ("~" is the home folder)
+    Q_INVOKABLE bool addLibraryFolderPath(const QString &path);
+
 signals:
+    void accentColorChanged();
+    void popupMenuRequested();
     void fullscreenInterfaceToggled( bool );
     void setInterfaceVisibible(bool, bool requestActivate = false);
     void setInterfaceFullScreen( bool );

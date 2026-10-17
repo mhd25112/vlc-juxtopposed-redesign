@@ -111,32 +111,40 @@ public:
     Q_PROPERTY(CSDMetrics* csdMetrics READ getCSDMetrics NOTIFY CSDMetricsChanged FINAL)
 
     //standard color definitions used by light/dark themes
-    COLOR_DEFINITION(orange500, "#FF8800");
-    COLOR_DEFINITION(orange800, "#FF610A");
+    // accent of Juxtopposed's redesign (Accent/Main, dark and light)
+    COLOR_DEFINITION(orange500, "#D37918");
+    COLOR_DEFINITION(orange800, "#E8851A");
 
     COLOR_DEFINITION(orange400, "#f89a06"); //FIXME name have been chosen randomly by me
     COLOR_DEFINITION(orange200, "#e29a06"); //FIXME name have been chosen randomly by me
 
-    COLOR_DEFINITION(darkGrey200, "#1E1E1E");
-    COLOR_DEFINITION(darkGrey300, "#212121");
-    COLOR_DEFINITION(darkGrey400, "#242424");
-    COLOR_DEFINITION(darkGrey500, "#272727");
-    COLOR_DEFINITION(darkGrey600, "#2A2A2A");
-    COLOR_DEFINITION(darkGrey700, "#2D2D2D");
-    COLOR_DEFINITION(darkGrey800, "#303030");
+    // greys of the redesign: BG/B1 for the views, BG/A4 for raised
+    // surfaces, BG/A1 and Divider/Dim for hovers and separators
+    COLOR_DEFINITION(darkGrey200, "#191919");
+    COLOR_DEFINITION(darkGrey300, "#0E0E0E");
+    COLOR_DEFINITION(darkGrey400, "#151515");
+    COLOR_DEFINITION(darkGrey500, "#1B1B1B");
+    COLOR_DEFINITION(darkGrey600, "#1E1E1E");
+    COLOR_DEFINITION(darkGrey700, "#262626");
+    COLOR_DEFINITION(darkGrey800, "#222222");
 
-    COLOR_DEFINITION(lightGrey100, "#FAFAFA");
-    COLOR_DEFINITION(lightGrey200, "#F6F6F6");
-    COLOR_DEFINITION(lightGrey300, "#F2F2F2");
-    COLOR_DEFINITION(lightGrey400, "#EDEDED");
-    COLOR_DEFINITION(lightGrey500, "#E9E9E9");
-    COLOR_DEFINITION(lightGrey600, "#E5E5E5");
-    COLOR_DEFINITION(lightGrey700, "#E0E0E0");
+    COLOR_DEFINITION(lightGrey100, "#E7E7E7");
+    COLOR_DEFINITION(lightGrey200, "#E2E2E2");
+    COLOR_DEFINITION(lightGrey300, "#DEDEDE");
+    COLOR_DEFINITION(lightGrey400, "#D9D9D9");
+    COLOR_DEFINITION(lightGrey500, "#D5D5D5");
+    COLOR_DEFINITION(lightGrey600, "#CDCDCD");
+    COLOR_DEFINITION(lightGrey700, "#C4C4C4");
 
     COLOR_DEFINITION(red500, "#FF0000");
 
 public:
     SystemPalette(QObject* parent = nullptr);
+
+private:
+    void loadAccent();
+
+public:
 
     ColorSchemeModel::ColorScheme source() const;
     QImage getCSDImage(vlc_qt_theme_csd_button_type type, vlc_qt_theme_csd_button_state state, bool maximized, bool active, int bannerHeight);

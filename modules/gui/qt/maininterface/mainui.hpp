@@ -22,6 +22,8 @@
 
 class VLCVarChoiceModel;
 
+class PlayerTweaks;
+
 class MainUI : public QObject
 {
     Q_OBJECT
@@ -41,8 +43,13 @@ private:
     static void clearQMLTypes();
     static QObject* getMainCtxInstance(QQmlEngine *, QJSEngine *);
 
+    // backend of the player sidebar and the redesigned dialogs, registered in
+    // two modules, created on first use
+    PlayerTweaks* playerTweaks();
+
     qt_intf_t* m_intf = nullptr;
     MainCtx* m_mainCtx = nullptr;
+    PlayerTweaks* m_playerTweaks = nullptr;
     QWindow*       m_interfaceWindow = nullptr;
 
     QPointer<QQmlComponent> m_component;

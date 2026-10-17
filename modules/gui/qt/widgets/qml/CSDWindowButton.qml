@@ -30,6 +30,8 @@ T.Button {
     property color color
     property color hoverColor
     property string iconTxt: ""
+    // line icon of the redesign, preferred to iconTxt
+    property string iconName: ""
     property bool showHovered: false
     property bool isThemeDark: false
     property bool externalPressed: false
@@ -62,8 +64,18 @@ T.Button {
     }
 
     contentItem: Item {
+        Widgets.PanelIcon {
+            anchors.centerIn: parent
+            visible: control.iconName !== ""
+            name: control.iconName
+            size: VLCStyle.dp(18, VLCStyle.scale)
+            color: control.color
+        }
+
         Widgets.IconLabel {
             id: icon
+
+            visible: control.iconName === ""
             anchors.centerIn: parent
             text: control.iconTxt
 

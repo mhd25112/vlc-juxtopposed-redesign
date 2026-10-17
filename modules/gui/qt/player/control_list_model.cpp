@@ -140,6 +140,14 @@ void ControlListModel::move(int src, int dest)
     endMoveRows();
 }
 
+QVariantList ControlListModel::ids() const
+{
+    QVariantList list;
+    for (ControlType control : m_controls)
+        list.append(static_cast<int>(control));
+    return list;
+}
+
 void ControlListModel::remove(int index)
 {
     beginRemoveRows(QModelIndex(), index, index);

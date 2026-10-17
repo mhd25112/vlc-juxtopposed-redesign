@@ -30,21 +30,24 @@ ControlBar {
     Accessible.name: qsTr("Mini player")
     AccessibleCompat.id: "miniplayerControlBar"
 
+    // replaced by another mini player (the card of the redesign)
+    property bool suppressed: false
+
     visible: (-anchors.bottomMargin < height) || (state === "inViewport")
 
     anchors.bottomMargin: (state === "outViewport") ? -height : 0
 
     height: _delayedImplicitHeight
 
-    state: Player.isStarted ? "inViewport"
-                            : "outViewport"
+    state: (Player.isStarted && !suppressed) ? "inViewport"
+                                             : "outViewport"
 
     Binding on state {
         id: stateBinding
         when: false
         delayed: true
-        value: Player.isStarted ? "inViewport"
-                                : "outViewport"
+        value: (Player.isStarted && !root.suppressed) ? "inViewport"
+                                                      : "outViewport"
     }
 
     Component.onCompleted: {

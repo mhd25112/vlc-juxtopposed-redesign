@@ -152,19 +152,8 @@ T.Control {
 
         hoverEnabled: true
 
-        readonly property bool cursorInside: {
-            if (!containsMouse)
-                return false
-
-            const center = (width / 2)
-            if (Helpers.pointInRadius( center - mouseX,
-                                       center - mouseY,
-                                       center )) {
-                return true
-            } else {
-                return false
-            }
-        }
+        // the button is a rectangle now, the whole area reacts
+        readonly property bool cursorInside: containsMouse
 
         onCursorInsideChanged: {
             if (pressed && !cursorInside) {
@@ -217,8 +206,9 @@ T.Control {
                 return VLCIcons.play_filled
         }
 
-        color: cursorInside ? theme.accent
-                            : "black"  //foreground is always black
+        // dark on the orange button, white when hovered
+        color: cursorInside ? "white"
+                            : "black"
 
         font.pixelSize: Math.round(parent.height / 1.7)
 
@@ -239,15 +229,18 @@ T.Control {
         }
     }
 
+    // A wide orange key, slightly rounded like the rest of the redesign
     background: Item {
-        implicitWidth: height
-        implicitHeight: VLCStyle.icon_medium
+        readonly property real cornerRadius: VLCStyle.dp(6, VLCStyle.scale)
+
+        implicitWidth: Math.round(height * 1.75)
+        implicitHeight: VLCStyle.icon_audioPlayerButton
 
         Widgets.AnimatedBackground {
             anchors.fill: parent
             anchors.margins: -border.width * 4
 
-            radius: width / 2
+            radius: parent.cornerRadius + border.width * 4
             border.pixelAligned: false
 
             enabled: theme.initialized
@@ -258,7 +251,7 @@ T.Control {
         Rectangle {
             anchors.fill: parent
 
-            radius: width / 2
+            radius: parent.cornerRadius
 
             gradient: Gradient {
                 GradientStop { position: 0.0; color: "#e25b01" }
@@ -280,7 +273,9 @@ T.Control {
             Rectangle {
                 id: innerRectangle
 
-                color: "white"
+                // NOTE: Only drives the press and hold state now, the button is
+                //       filled instead of being an orange ring.
+                color: "transparent"
 
                 anchors.fill: parent
                 anchors.margins: _diminished ? (parent.width / 2)

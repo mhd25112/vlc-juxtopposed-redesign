@@ -31,6 +31,8 @@ FocusScope {
     id: resumePanel
 
     property int maxWidth
+    // false when the prompt is shown elsewhere
+    property bool active: true
 
     implicitHeight: continueBtn.y + continueBtn.implicitHeight
     implicitWidth: maxWidth
@@ -47,6 +49,8 @@ FocusScope {
 
     function showResumePanel ()
     {
+        if (!active)
+            return
         resumePanel.visible = true
         continueBtn.forceActiveFocus()
         resumeTimeout.start()

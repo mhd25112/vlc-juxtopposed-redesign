@@ -111,3 +111,16 @@ void ColorSchemeModel::indexChanged(const int i)
     if (i == m_currentIndex)
         emit currentChanged();
 }
+
+void ColorSchemeModel::setScheme(ColorScheme scheme)
+{
+    const QVector<Item> schemes = getSchemes();
+    for (int i = 0; i < schemes.size(); ++i)
+    {
+        if (schemes.at(i).scheme == scheme)
+        {
+            setCurrentIndex(i);
+            return;
+        }
+    }
+}

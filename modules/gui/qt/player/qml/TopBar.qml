@@ -74,6 +74,9 @@ FocusScope{
     // Signals
 
     signal togglePlaylistVisibility()
+    // the library next to the video, see CompactLibrary
+    signal toggleLibrary()
+    property bool libraryVisible: false
     signal requestLockUnlockAutoHide(bool lock)
     signal backRequested()
 
@@ -269,44 +272,137 @@ FocusScope{
 
             visible: (root._showTopBar && root.resumeVisible === false)
 
-            implicitHeight: VLCStyle.icon_banner + VLCStyle.margin_xxsmall * 2
-            implicitWidth: backBtn.implicitWidth + logo.implicitWidth + VLCStyle.margin_xxsmall
+            implicitHeight: VLCStyle.dp(40, VLCStyle.scale)
+            implicitWidth: leftRow.implicitWidth
 
-            Widgets.IconToolButton {
-                id: backBtn
+            Row {
+                id: leftRow
 
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.left: parent.left
+                spacing: VLCStyle.dp(4, VLCStyle.scale)
 
-                objectName: "IconToolButton"
-                font.pixelSize: VLCStyle.icon_banner
-                text: VLCIcons.back
-                description: qsTr("Back")
+                Widgets.BannerCone {
+                    id: logo
 
-                AccessibleCompat.id: "topBarBackButton"
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: VLCStyle.dp(30, VLCStyle.scale)
+                    height: VLCStyle.dp(22, VLCStyle.scale)
+                    sourceSize.width: VLCStyle.dp(22, VLCStyle.scale)
+                    sourceSize.height: VLCStyle.dp(22, VLCStyle.scale)
+                    color: theme.accent
+                }
 
-                focus: true
+                Widgets.SvgToolButton {
+                    id: backBtn
 
-                Navigation.parentItem: root
-                Navigation.rightItem: menuSelector
-                onClicked: root.backRequested()
+                    anchors.verticalCenter: parent.verticalCenter
+                    iconName: "more"
+                    description: qsTr("Menu")
+                    AccessibleCompat.id: "topBarMenuButton"
+                    width: VLCStyle.dp(34, VLCStyle.scale)
+                    height: VLCStyle.dp(34, VLCStyle.scale)
+                    checked: mainMenu.visible
 
-                onHoveredChanged: root.requestLockUnlockAutoHide(hovered)
-            }
+                    focus: true
 
-            Widgets.BannerCone {
-                id: logo
+                    Navigation.parentItem: root
+                    Navigation.rightItem: libraryButton
 
-                anchors.verticalCenter: parent.verticalCenter
-                anchors.left: backBtn.right
-                anchors.leftMargin: VLCStyle.margin_xxsmall
+                    onClicked: mainMenu.show(backBtn)
+                    onHoveredChanged: root.requestLockUnlockAutoHide(hovered)
 
-                color: theme.accent
+                    Widgets.AppMainMenu {
+                        id: mainMenu
+                        onOpened: root.requestLockUnlockAutoHide(true)
+                        onClosed: root.requestLockUnlockAutoHide(false)
+                    }
+                }
+
+                Widgets.SvgToolButton {
+                    id: libraryButton
+
+                    anchors.verticalCenter: parent.verticalCenter
+                    iconName: root.libraryVisible ? "sidebar_open" : "sidebar"
+                    description: qsTr("Library")
+                    checked: root.libraryVisible
+                    width: VLCStyle.dp(34, VLCStyle.scale)
+                    height: VLCStyle.dp(34, VLCStyle.scale)
+
+                    Navigation.parentItem: root
+                    Navigation.leftItem: backBtn
+                    Navigation.rightItem: folderButton
+
+                    onClicked: root.toggleLibrary()
+                    onHoveredChanged: root.requestLockUnlockAutoHide(hovered)
+                }
+
+                Rectangle {
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: VLCStyle.border
+                    height: VLCStyle.dp(18, VLCStyle.scale)
+                    color: PanelStyle.colors((theme.palette?.isDark ?? true)).separatorBright
+                    visible: folderButton.visible
+                }
+
+                // the folder of what plays: the familiar name of the show,
+                // it opens the library there
+                T.AbstractButton {
+                    id: folderButton
+
+                    readonly property string folder: {
+                        const url = decodeURIComponent(String(Player.url))
+                        const parts = url.split(/[\\/]/).filter((p) => p !== "")
+                        return parts.length > 1 ? parts[parts.length - 2] : ""
+                    }
+
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: folder !== "" && !folder.endsWith(":")
+                    implicitWidth: folderRow.implicitWidth + VLCStyle.dp(16, VLCStyle.scale)
+                    implicitHeight: VLCStyle.dp(30, VLCStyle.scale)
+
+                    onClicked: root.toggleLibrary()
+                    onHoveredChanged: root.requestLockUnlockAutoHide(hovered)
+
+                    background: Rectangle {
+                        radius: VLCStyle.dp(6, VLCStyle.scale)
+                        color: folderButton.hovered ? PanelStyle.colors((theme.palette?.isDark ?? true)).hover : "transparent"
+                    }
+
+                    contentItem: Item {
+                        Row {
+                            id: folderRow
+
+                            anchors.centerIn: parent
+                            spacing: VLCStyle.dp(8, VLCStyle.scale)
+
+                            Widgets.PanelIcon {
+                                anchors.verticalCenter: parent.verticalCenter
+                                name: "folder"
+                                size: VLCStyle.dp(18, VLCStyle.scale)
+                                color: PanelStyle.colors((theme.palette?.isDark ?? true)).label
+                            }
+
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: folderButton.folder
+                                font.pixelSize: VLCStyle.dp(13, VLCStyle.scale)
+                                color: folderButton.hovered ? PanelStyle.colors((theme.palette?.isDark ?? true)).bright
+                                                            : PanelStyle.colors((theme.palette?.isDark ?? true)).text
+                            }
+                        }
+                    }
+
+                    Accessible.name: qsTr("Open %1 in the library").arg(folder)
+                }
             }
         }
 
         ResumeDialog {
             id: resumeDialog
+
+            // see ResumePrompt in Player
+            active: false
 
             anchors.fill: parent
             //add aditional margin so it align with menubar text when visible (see MenuBar.qml)
@@ -353,9 +449,8 @@ FocusScope{
         rightPadding: VLCStyle.margin_small
 
         text: root.title
-        color: theme.fg.primary
+        color: PanelStyle.colors((theme.palette?.isDark ?? true)).text
         font.pixelSize: VLCStyle.dp(13, VLCStyle.scale)
-        font.weight: Font.DemiBold
         elide: Text.ElideRight
         verticalAlignment: Text.AlignVCenter
 
@@ -434,11 +529,33 @@ FocusScope{
 
         visible: root._showTopBar
 
+        Widgets.SvgToolButton {
+            anchors.verticalCenter: parent.verticalCenter
+            iconName: "pip"
+            description: qsTr("Picture in picture")
+            width: VLCStyle.dp(36, VLCStyle.scale)
+            height: VLCStyle.dp(34, VLCStyle.scale)
+            visible: root.showCSD && MainCtx.canShowVideoPIP
+            onClicked: root.backRequested()
+            onHoveredChanged: root.requestLockUnlockAutoHide(hovered)
+        }
+
+        Widgets.SvgToolButton {
+            anchors.verticalCenter: parent.verticalCenter
+            iconName: "fullscreen"
+            description: qsTr("Fullscreen")
+            width: VLCStyle.dp(36, VLCStyle.scale)
+            height: VLCStyle.dp(34, VLCStyle.scale)
+            visible: root.showCSD
+            onClicked: MainCtx.toggleInterfaceFullScreen()
+            onHoveredChanged: root.requestLockUnlockAutoHide(hovered)
+        }
+
         Widgets.IconToolButton {
             id: menuSelector
 
             anchors.verticalCenter: parent.verticalCenter
-            visible: !root.showToolbar
+            visible: false
             enabled: visible
             focus: visible
             font.pixelSize: VLCStyle.icon_banner
@@ -482,6 +599,8 @@ FocusScope{
         PlaylistPane.PlaylistToggleButton {
             id: playlistButton
 
+            // the queue opens from the control bar
+            visible: false
             anchors.verticalCenter: parent.verticalCenter
             objectName: ControlListModel.PLAYLIST_BUTTON
             font.pixelSize: VLCStyle.icon_banner

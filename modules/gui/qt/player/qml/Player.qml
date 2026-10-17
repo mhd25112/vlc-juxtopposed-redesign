@@ -62,6 +62,9 @@ FocusScope {
 
     property bool _keyPressed: false
 
+    // Last time a click or a key press asked for the toolbars:
+    property double _lastExplicitShow: 0
+
     // Settings
 
     Accessible.role: Accessible.Client
@@ -70,8 +73,14 @@ FocusScope {
 
     // Events
 
-    Component.onCompleted: MainCtx.preferHotkeys = true
-    Component.onDestruction: MainCtx.preferHotkeys = false
+    Component.onCompleted: {
+        MainCtx.preferHotkeys = true
+        MainCtx.hasRedesignedPopupMenu = true
+    }
+    Component.onDestruction: {
+        MainCtx.preferHotkeys = false
+        MainCtx.hasRedesignedPopupMenu = false
+    }
 
     Keys.priority: Keys.AfterItem
     Keys.onPressed: (event) => {
@@ -100,6 +109,14 @@ FocusScope {
         lockUnlockAutoHide(_controlsUnderVideo)
     }
 
+    // gap around the video when the controls are under it, as in the
+    // window frame of the redesign
+    readonly property real _videoInset: (_controlsUnderVideo && MainCtx.hasEmbededVideo
+                                         && MainCtx.intfMainWindow.visibility !== Window.FullScreen)
+                                        ? VLCStyle.dp(10, VLCStyle.scale) : 0
+
+    property bool libraryVisible: false
+
     // Functions
 
     function lockUnlockAutoHide(lock) {
@@ -111,6 +128,25 @@ FocusScope {
     }
 
     // Private
+
+    // The toolbars show up when the pointer comes near the edge they live on
+    // and go away as soon as it moves back over the picture, instead of
+    // covering the video on any mouse move.
+    function _onPointerMoved(y) {
+        cursorHideTimer.restart()
+
+        if (_controlsUnderVideo)
+            return
+
+        const margin = VLCStyle.margin_xlarge
+
+        if (y <= topBar.height + margin || y >= rootPlayer.height - controlBar.height - margin)
+            playerToolbarVisibilityFSM.mouseMove()
+        // NOTE: Leave the toolbars a moment when a click or a key brought them
+        //       up, the pointer often jitters right after.
+        else if (Date.now() - _lastExplicitShow > 1000)
+            playerToolbarVisibilityFSM.mouseAway()
+    }
 
     function _onNavigationCancel() {
         if (MainCtx.hasEmbededVideo && !MainCtx.canShowVideoPIP) {
@@ -140,6 +176,15 @@ FocusScope {
 
             topBar.forceUnlock()
         }
+    }
+
+    // The cursor follows mouse moves, not toolbars, since moving over the
+    // middle of the video no longer brings them up.
+    Timer {
+        id: cursorHideTimer
+
+        interval: MainCtx.mouseHideTimeout
+        repeat: false
     }
 
     PlayerPlaylistVisibilityFSM {
@@ -180,11 +225,15 @@ FocusScope {
 
         objectName: "playerSpecializationLoader"
 
+        // the video sits in the window frame, next to the compact library
         anchors {
-            left: parent.left
+            left: compactLibraryLoader.shown ? compactLibraryLoader.right : parent.left
             right: parent.right
             top: (MainCtx.hasEmbededVideo && rootPlayer._controlsUnderVideo) ? topBar.bottom : parent.top
             bottom: (MainCtx.hasEmbededVideo && rootPlayer._controlsUnderVideo) ? controlBar.top : parent.bottom
+
+            leftMargin: rootPlayer._videoInset
+            rightMargin: rootPlayer._videoInset
         }
 
         sourceComponent: MainCtx.hasEmbededVideo ? videoComponent : audioComponent
@@ -275,16 +324,49 @@ FocusScope {
 
                     cursorShape: playerSpecializationLoader.cursorShape
 
+                    // Settings, Controls, Mouse: a click pauses, a double click
+                    // goes fullscreen (each can be turned off)
+                    doubleClickEnabled: {
+                        PlayerTweaks.revision
+                        return String(PlayerTweaks.uiOption("videoDoubleClick", "fullscreen")) !== "none"
+                    }
+
+                    TapHandler {
+                        acceptedButtons: Qt.LeftButton
+                        enabled: {
+                            PlayerTweaks.revision
+                            return !Player.isInteractive
+                                   && String(PlayerTweaks.uiOption("videoSingleClick", "pause")) === "pause"
+                        }
+                        onSingleTapped: {
+                            // not the click that closed a menu
+                            if (Date.now() - PanelStyle.lastMenuClosedAt > 800)
+                                MainPlaylistController.togglePlayPause()
+                        }
+                    }
+
                     function onMouseEvent() {
                         //short interval for mouse events
                         if (Player.isInteractive)
                             interactiveAutoHideTimer.restart()
-                        else
+                        else {
+                            rootPlayer._lastExplicitShow = Date.now()
                             playerToolbarVisibilityFSM.mouseMove();
+                        }
+                    }
+
+                    function onMouseMoved(x, y) {
+                        if (Player.isInteractive) {
+                            interactiveAutoHideTimer.restart()
+                            return
+                        }
+
+                        // NOTE: The surface reports positions in physical pixels.
+                        rootPlayer._onPointerMoved(y / (Screen.devicePixelRatio || 1))
                     }
 
                     Component.onCompleted: {
-                        mouseMoved.connect(videoSurface.onMouseEvent)
+                        mouseMoved.connect(videoSurface.onMouseMoved)
                         mousePressed.connect(videoSurface.onMouseEvent)
                         mouseReleased.connect(videoSurface.onMouseEvent)
                         mouseDblClicked.connect(videoSurface.onMouseEvent)
@@ -294,6 +376,7 @@ FocusScope {
                         when: playerToolbarVisibilityFSM.started
                             && !playerToolbarVisibilityFSM.isVisible
                             && !interactiveAutoHideTimer.running
+                            && !cursorHideTimer.running
                         value: Qt.BlankCursor
                     }
 
@@ -588,12 +671,17 @@ FocusScope {
 
                         Item {
                             id: coverItem
-                            Layout.preferredHeight: rootPlayer.height / sizeConstant
+                            // the big cover of the redesign: most of the height,
+                            // leaving room for the title under it
+                            Layout.preferredHeight: Math.max(VLCStyle.dp(120, VLCStyle.scale),
+                                                             Math.min(centerContent.height - VLCStyle.dp(150, VLCStyle.scale),
+                                                                      (leftSideParent.visible ? rightSideParent.width : centerContent.width)
+                                                                      - VLCStyle.dp(64, VLCStyle.scale)))
                             Layout.preferredWidth: cover.paintedWidth
                             Layout.maximumHeight: centerContent.height
                             Layout.alignment: Qt.AlignHCenter
 
-                            readonly property real sizeConstant: 2.7182
+                            readonly property real sizeConstant: 1.25
 
                             Image {
                                 id: cover
@@ -617,6 +705,9 @@ FocusScope {
                                 mipmap: true
                                 cache: false
                                 asynchronous: true
+
+                                // drawn with rounded corners by roundedCover
+                                visible: false
 
                                 onTargetSourceChanged: {
                                     cover.source = targetSource
@@ -653,16 +744,32 @@ FocusScope {
                                                                                                               })
                                 }
 
+                            }
+
+                            // the cover, with rounded corners
+                            Widgets.ImageExt {
+                                id: roundedCover
+
+                                anchors.centerIn: cover
+                                width: cover.paintedWidth
+                                height: cover.paintedHeight
+
+                                textureProviderItem: cover
+                                fillMode: Image.Stretch
+                                radius: VLCStyle.dp(16, VLCStyle.scale)
+
                                 Widgets.RoundedRectangleShadow {
                                     color: Qt.rgba(0, 0, 0, .18)
                                     yOffset: VLCStyle.dp(24, VLCStyle.scale)
                                     blurRadius: VLCStyle.dp(54, VLCStyle.scale)
+                                    radius: roundedCover.radius
                                 }
 
                                 Widgets.RoundedRectangleShadow {
                                     color: Qt.rgba(0, 0, 0, .22)
                                     yOffset: VLCStyle.dp(5, VLCStyle.scale)
                                     blurRadius: VLCStyle.dp(14, VLCStyle.scale)
+                                    radius: roundedCover.radius
                                 }
                             }
                         }
@@ -671,7 +778,8 @@ FocusScope {
                             id: albumLabel
 
                             Layout.alignment: Qt.AlignHCenter
-                            Layout.topMargin: VLCStyle.margin_xxlarge
+                            Layout.topMargin: VLCStyle.dp(48, VLCStyle.scale)
+                            Layout.maximumWidth: centerContent.width - VLCStyle.dp(64, VLCStyle.scale)
 
                             Binding on visible {
                                 delayed: true
@@ -679,11 +787,14 @@ FocusScope {
                                 value: centerContent.height > (albumLabel.y + albumLabel.height)
                             }
 
-                            text: Player.album
-                            font.pixelSize: VLCStyle.fontSize_xxlarge
+                            // as in the redesign: title - artist
+                            text: Player.artist ? qsTr("%1 - %2").arg(Player.title).arg(Player.artist) : Player.title
+                            elide: Text.ElideMiddle
+                            font.pixelSize: VLCStyle.dp(22, VLCStyle.scale)
+                            font.weight: Font.Normal
                             horizontalAlignment: Text.AlignHCenter
-                            color: centerTheme.fg.primary
-                            Accessible.description: qsTr("album")
+                            color: PanelStyle.colors(centerTheme.palette?.isDark ?? true).text
+                            Accessible.description: qsTr("title and artist")
 
                             property bool componentCompleted: false
 
@@ -698,10 +809,11 @@ FocusScope {
                             Layout.alignment: Qt.AlignHCenter
                             Layout.topMargin: VLCStyle.margin_small
 
+                            // in the line above
                             Binding on visible {
                                 delayed: true
                                 when: artistLabel.componentCompleted
-                                value: centerContent.height > (artistLabel.y + artistLabel.height)
+                                value: false
                             }
 
                             text: Player.artist
@@ -787,7 +899,8 @@ FocusScope {
                             Binding on visible {
                                 delayed: true
                                 when: audioControls.componentCompleted
-                                value: Player.videoTracks.count === 0 && centerContent.height > (audioControls.y + audioControls.height)
+                                // in the control bar in the redesign
+                                value: false
                             }
 
                             focus: true
@@ -990,6 +1103,9 @@ FocusScope {
 
         onTogglePlaylistVisibility: playlistVisibility.togglePlaylistVisibility()
 
+        libraryVisible: rootPlayer.libraryVisible
+        onToggleLibrary: rootPlayer.libraryVisible = !rootPlayer.libraryVisible
+
         onRequestLockUnlockAutoHide: (lock) => {
             rootPlayer.lockUnlockAutoHide(lock)
         }
@@ -1023,7 +1139,10 @@ FocusScope {
                 }
             }
 
-            tintColor: windowTheme.bg.primary
+            // solid in the window frame of the redesign
+            enabled: !rootPlayer._controlsUnderVideo
+            tintColor: rootPlayer._controlsUnderVideo ? PanelStyle.colors(windowTheme.palette?.isDark ?? true).window
+                                                      : windowTheme.bg.primary
 
             visible: MainCtx.pinVideoControls || (MainCtx.hasEmbededVideo && !rootPlayer.displayFadeRectangles)
         }
@@ -1095,6 +1214,8 @@ FocusScope {
 
         sourceComponent: PlaylistPane {
             id: playlistView
+
+            tabbed: true
 
             property real maximumWidth: (rootPlayer.width + playlistView.rightPadding) / 2
 
@@ -1181,6 +1302,194 @@ FocusScope {
                         resizeHandle._updateFromMainCtx()
                     }
                 }
+            }
+        }
+    }
+
+    // the window frame around the video, on its sides
+    Rectangle {
+        anchors.top: topBar.bottom
+        anchors.bottom: controlBar.top
+        anchors.right: playerSpecializationLoader.left
+        width: rootPlayer._videoInset
+        visible: width > 0
+        color: PanelStyle.colors(windowTheme.palette?.isDark ?? true).window
+    }
+
+    Rectangle {
+        anchors.top: topBar.bottom
+        anchors.bottom: controlBar.top
+        anchors.left: playerSpecializationLoader.right
+        width: rootPlayer._videoInset
+        visible: width > 0
+        color: PanelStyle.colors(windowTheme.palette?.isDark ?? true).window
+    }
+
+    // The library next to the video, opened from the title bar
+    Loader {
+        id: compactLibraryLoader
+
+        readonly property bool shown: rootPlayer.libraryVisible && rootPlayer._controlsUnderVideo
+                                      && MainCtx.mediaLibraryAvailable
+
+        anchors {
+            top: topBar.bottom
+            left: parent.left
+            bottom: controlBar.top
+        }
+
+        z: 1
+        active: shown || status === Loader.Ready
+        visible: shown
+        width: shown && item ? item.implicitWidth : 0
+
+        sourceComponent: CompactLibrary {
+            focus: true
+
+            onFullLibraryRequested: (path) => {
+                rootPlayer.libraryVisible = false
+                MainCtx.playerView = false
+                History.push(path)
+            }
+        }
+
+        onShownChanged: rootPlayer.lockUnlockAutoHide(shown)
+    }
+
+    // "Show Metadata": what plays, in words, over the top left of the video
+    Rectangle {
+        id: metadataOverlay
+
+        readonly property bool enabledOption: {
+            PlayerTweaks.revision
+            return String(PlayerTweaks.uiOption("metadata", false)) === "true"
+        }
+        property var details: ({})
+
+        function refresh() {
+            details = PlayerTweaks.mediaDetails()
+        }
+
+        anchors.left: playerSpecializationLoader.left
+        anchors.top: playerSpecializationLoader.top
+        anchors.leftMargin: VLCStyle.dp(24, VLCStyle.scale)
+        anchors.topMargin: (rootPlayer._controlsUnderVideo ? 0 : topBar.reservedHeight) + VLCStyle.dp(24, VLCStyle.scale)
+        z: 2
+
+        visible: enabledOption && Player.isStarted && !!details.title
+        width: metadataColumn.implicitWidth + 2 * VLCStyle.dp(14, VLCStyle.scale)
+        height: metadataColumn.implicitHeight + 2 * VLCStyle.dp(12, VLCStyle.scale)
+        radius: VLCStyle.dp(8, VLCStyle.scale)
+        color: Qt.rgba(0, 0, 0, 0.6)
+
+        onEnabledOptionChanged: refresh()
+
+        Connections {
+            target: Player
+            function onInputChanged() { metadataOverlay.refresh() }
+        }
+
+        // the tracks are known a moment after the start
+        Timer {
+            interval: 1500
+            repeat: true
+            running: metadataOverlay.enabledOption && Player.isStarted
+            triggeredOnStart: true
+            onTriggered: metadataOverlay.refresh()
+        }
+
+        Column {
+            id: metadataColumn
+
+            x: VLCStyle.dp(14, VLCStyle.scale)
+            y: VLCStyle.dp(12, VLCStyle.scale)
+            spacing: VLCStyle.dp(4, VLCStyle.scale)
+
+            Text {
+                text: metadataOverlay.details.title ?? ""
+                font.pixelSize: VLCStyle.dp(16, VLCStyle.scale)
+                font.weight: Font.DemiBold
+                color: "#eaeaea"
+            }
+
+            Repeater {
+                model: [
+                    metadataOverlay.details.video ?? "",
+                    metadataOverlay.details.audio ?? "",
+                    [metadataOverlay.details.format ?? "", metadataOverlay.details.size ?? ""].filter((t) => t !== "").join(" · ")
+                ].filter((t) => t !== "")
+
+                Text {
+                    required property string modelData
+                    text: modelData
+                    font.pixelSize: VLCStyle.dp(13, VLCStyle.scale)
+                    color: "#c6c6c6"
+                }
+            }
+        }
+    }
+
+    ResumePrompt {
+        // over the video, above the control bar
+        anchors.horizontalCenter: playerSpecializationLoader.horizontalCenter
+        anchors.bottom: controlBar.top
+        anchors.bottomMargin: VLCStyle.dp(24, VLCStyle.scale)
+        z: 2
+
+        onLockAutoHide: (lock) => rootPlayer.lockUnlockAutoHide(lock)
+    }
+
+    // Settings of what plays, on the right side like the play queue: only
+    // one of them shows at a time.
+    Loader {
+        id: sidebarLoader
+
+        readonly property bool shown: PlayerTweaks.sidebarVisible
+
+        anchors {
+            top: rootPlayer._controlsUnderVideo ? topBar.bottom : parent.top
+            topMargin: rootPlayer._controlsUnderVideo ? VLCStyle.margin_xsmall : topBar.reservedHeight
+            right: parent.right
+            rightMargin: VLCStyle.applicationHorizontalMargin + VLCStyle.margin_xsmall
+            bottom: parent.bottom
+            bottomMargin: parent.height - controlBar.y + VLCStyle.margin_xsmall
+        }
+
+        z: 1
+
+        // keep the tab and the scroll position once opened
+        active: shown || status === Loader.Ready
+        visible: shown && status === Loader.Ready
+
+        width: item ? item.implicitWidth : 0
+
+        opacity: shown ? 1 : 0
+        Behavior on opacity { NumberAnimation { duration: VLCStyle.duration_short } }
+
+        sourceComponent: PlayerSidebar {
+            focus: true
+
+            Navigation.parentItem: rootPlayer
+            Navigation.downItem: controlBar
+        }
+
+        onShownChanged: {
+            rootPlayer.lockUnlockAutoHide(shown)
+            if (shown) {
+                MainCtx.playqueuePanel.visible = false
+                if (item)
+                    item.forceActiveFocus()
+            } else {
+                controlBar.forceActiveFocus()
+            }
+        }
+
+        Connections {
+            target: MainCtx.playqueuePanel
+
+            function onVisibleChanged() {
+                if (MainCtx.playqueuePanel.visible)
+                    PlayerTweaks.sidebarVisible = false
             }
         }
     }
@@ -1296,9 +1605,16 @@ FocusScope {
         leftPadding: VLCStyle.applicationHorizontalMargin
         bottomPadding: VLCStyle.applicationVerticalMargin + VLCStyle.margin_xsmall
 
-        textPosition: (MainCtx.pinVideoControls)
-                      ? ControlBar.TimeTextPosition.LeftRightSlider
-                      : ControlBar.TimeTextPosition.AboveSlider
+        // A thick seek bar between the playback and the media controls, with
+        // the time on its sides, keeps the controls a single thin row over the
+        // video. Layouts with center controls get it on a line above them.
+        sliderInline: true
+        sliderAtBottom: false
+        sliderHeight: VLCStyle.dp(22, VLCStyle.scale)
+        flatSlider: true
+        editMode: PlayerTweaks.customizing
+
+        textPosition: ControlBar.TimeTextPosition.LeftRightSlider
 
         // hide right text so that it won't overlap with play queue
         showRemainingTime: (textPosition !== ControlBar.TimeTextPosition.AboveSlider)
@@ -1343,6 +1659,9 @@ FocusScope {
                     return 0.6
                 } else if ((Window.visibility === Window.FullScreen) && MainCtx.hasEmbededVideo) {
                     return MainCtx.pinOpacity
+                } else if (rootPlayer._controlsUnderVideo) {
+                    // the solid window frame of the redesign
+                    return 1.0
                 } else if (AcrylicController.enabled || !MainCtx.hasEmbededVideo) {
                     return 0.7
                 } else {
@@ -1350,7 +1669,8 @@ FocusScope {
                 }
             }
 
-            color: windowTheme.bg.primary
+            color: rootPlayer._controlsUnderVideo ? PanelStyle.colors(windowTheme.palette?.isDark ?? true).window
+                                                  : windowTheme.bg.primary
         }
 
         FadeControllerStateGroup {
@@ -1364,13 +1684,49 @@ FocusScope {
         ctx: MainCtx
     }
 
+    // the right-click menu of the redesign, also for the video (see
+    // DialogsProvider, INTF_DIALOG_POPUPMENU)
+    VideoContextMenu {
+        id: videoContextMenu
+
+        onOpened: rootPlayer.lockUnlockAutoHide(true)
+        onClosed: rootPlayer.lockUnlockAutoHide(false)
+    }
+
+    Connections {
+        target: MainCtx
+        function onPopupMenuRequested() { videoContextMenu.show() }
+    }
+
+    // "Customize Player": the list of controls over the video, the bar
+    // below in its edit mode
+    Loader {
+        id: customizeLoader
+
+        anchors.fill: parent
+        anchors.bottomMargin: controlBar.height
+        z: 10
+        active: PlayerTweaks.customizing
+
+        sourceComponent: CustomizePlayer {
+            barModel: MainCtx.controlbarProfileModel.currentModel?.getModel(controlBar.identifier) ?? null
+        }
+
+        onActiveChanged: {
+            rootPlayer.lockUnlockAutoHide(active)
+            if (active && item)
+                item.forceActiveFocus(Qt.OtherFocusReason)
+        }
+    }
+
+
     TapHandler {
         acceptedButtons: Qt.RightButton
         enabled: !MainCtx.hasEmbededVideo
 
         onTapped: (eventPoint, button) => {
             if (button & Qt.RightButton) {
-                audioContextMenu.popup(eventPoint.globalPosition)
+                videoContextMenu.show()
             }
         }
     }
@@ -1394,8 +1750,10 @@ FocusScope {
         Keys.onPressed: (event) => {
             if (Player.isInteractive)
                 interactiveAutoHideTimer.restart()
-            else
+            else {
+                rootPlayer._lastExplicitShow = Date.now()
                 playerToolbarVisibilityFSM.keyboardMove()
+            }
         }
     }
 }

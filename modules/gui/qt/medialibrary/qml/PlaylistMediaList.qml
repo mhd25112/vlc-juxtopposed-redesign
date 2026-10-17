@@ -42,6 +42,9 @@ MainViewLoader {
     //---------------------------------------------------------------------------------------------
 
     property bool isMusic: false
+    // the Playlists page of the library shows all of them
+    property int playlistType: isMusic ? MLPlaylistListModel.PLAYLIST_TYPE_AUDIO
+                                       : MLPlaylistListModel.PLAYLIST_TYPE_VIDEO
 
     readonly property int currentIndex: currentItem?.currentIndex ?? -1
 
@@ -109,8 +112,7 @@ MainViewLoader {
         id: playlistModel
         ml: MediaLib
 
-        playlistType: isMusic ? MLPlaylistListModel.PLAYLIST_TYPE_AUDIO
-                              : MLPlaylistListModel.PLAYLIST_TYPE_VIDEO
+        playlistType: root.playlistType
 
         coverSize: (isMusic) ? Qt.size(512, 512)
                              : Qt.size(1024, 640)

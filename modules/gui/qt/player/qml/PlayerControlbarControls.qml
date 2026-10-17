@@ -53,6 +53,8 @@ QtObject {
         { id: ControlListModel.LOOP_BUTTON, file: "LoopButton.qml", label: VLCIcons.repeat_all, text: qsTr("Loop") },
         { id: ControlListModel.INFO_BUTTON, file: "InfoButton.qml", label: VLCIcons.info, text: qsTr("Information") },
         { id: ControlListModel.LANG_BUTTON, file: "LangButton.qml", label: VLCIcons.audiosub, text: qsTr("Open subtitles") },
+        { id: ControlListModel.SUBTITLE_BUTTON, file: "SubtitleButton.qml", label: VLCIcons.audiosub, text: qsTr("Subtitles") },
+        { id: ControlListModel.AUDIO_TRACK_BUTTON, file: "AudioTrackButton.qml", label: VLCIcons.topbar_music, text: qsTr("Audio tracks and output") },
         { id: ControlListModel.BOOKMARK_BUTTON, file: "BookmarkButton.qml", label: VLCIcons.bookmark, text: qsTr("Bookmark Button") },
         { id: ControlListModel.CHAPTER_PREVIOUS_BUTTON, file: "ChapterPreviousButton.qml", label: VLCIcons.dvd_prev, text: qsTr("Previous chapter") },
         { id: ControlListModel.CHAPTER_NEXT_BUTTON, file: "ChapterNextButton.qml", label: VLCIcons.dvd_next, text: qsTr("Next chapter") },
@@ -83,5 +85,52 @@ QtObject {
         entry.source = controlPath + entry.file
 
         return entry
+    }
+
+    // the controls offered by "Customize Player", in its order, with the
+    // names and icons of the redesign
+    readonly property var customizeList: [
+        { id: ControlListModel.WIDGET_SPACER_EXTEND, text: qsTr("Spacer"), icon: "" },
+        { id: ControlListModel.WIDGET_SPACER, text: qsTr("Gap"), icon: "" },
+        { id: ControlListModel.PLAYBACK_SPEED_BUTTON, text: qsTr("Playback Speed"), icon: "speed" },
+        { id: ControlListModel.SKIP_FW_BUTTON, text: qsTr("Forward"), icon: "skip_forward" },
+        { id: ControlListModel.SKIP_BACK_BUTTON, text: qsTr("Backward"), icon: "skip_back" },
+        { id: ControlListModel.STOP_BUTTON, text: qsTr("Stop"), icon: "stop" },
+        { id: ControlListModel.LOOP_BUTTON, text: qsTr("Repeat"), icon: "repeat" },
+        { id: ControlListModel.RANDOM_BUTTON, text: qsTr("Shuffle"), icon: "shuffle" },
+        { id: ControlListModel.RECORD_BUTTON, text: qsTr("Record"), icon: "record" },
+        { id: ControlListModel.SNAPSHOT_BUTTON, text: qsTr("Snapshot"), icon: "capture" },
+        { id: ControlListModel.ASPECT_RATIO_COMBOBOX, text: qsTr("Aspect Ratio"), icon: "layout" },
+        { id: ControlListModel.EXTENDED_BUTTON, text: qsTr("Right Sidebar"), icon: "sidebar" },
+        { id: ControlListModel.QUIT_BUTTON, text: qsTr("Quit VLC"), icon: "quit" },
+        { id: ControlListModel.ARTWORK_INFO, text: qsTr("Now Playing"), icon: "music" },
+        { id: ControlListModel.INFO_BUTTON, text: qsTr("Properties"), icon: "info" },
+        { id: ControlListModel.ATOB_BUTTON, text: qsTr("A to B Loop"), icon: "repeat" },
+        { id: ControlListModel.CHAPTER_PREVIOUS_BUTTON, text: qsTr("Previous Chapter"), icon: "chapters" },
+        { id: ControlListModel.CHAPTER_NEXT_BUTTON, text: qsTr("Next Chapter"), icon: "chapters" },
+        { id: ControlListModel.BOOKMARK_BUTTON, text: qsTr("Bookmarks"), icon: "bookmark" },
+        { id: ControlListModel.PLAYLIST_BUTTON, text: qsTr("Queue"), icon: "queue" },
+        { id: ControlListModel.FULLSCREEN_BUTTON, text: qsTr("Fullscreen"), icon: "fullscreen" },
+        { id: ControlListModel.SUBTITLE_BUTTON, text: qsTr("Subtitles"), icon: "subtitles" },
+        { id: ControlListModel.AUDIO_TRACK_BUTTON, text: qsTr("Audio"), icon: "visualizer" },
+        { id: ControlListModel.VOLUME, text: qsTr("Volume"), icon: "volume" },
+        { id: ControlListModel.PREVIOUS_BUTTON, text: qsTr("Previous"), icon: "previous" },
+        { id: ControlListModel.PLAY_BUTTON, text: qsTr("Play"), icon: "play_filled" },
+        { id: ControlListModel.NEXT_BUTTON, text: qsTr("Next"), icon: "next" },
+        { id: ControlListModel.FRAME_PREV_BUTTON, text: qsTr("Next Frame"), icon: "next" },
+        { id: ControlListModel.FRAME_NEXT_BUTTON, text: qsTr("Previous Frame"), icon: "previous" },
+        { id: ControlListModel.SLOWER_BUTTON, text: qsTr("Slower"), icon: "speed" },
+        { id: ControlListModel.FASTER_BUTTON, text: qsTr("Faster"), icon: "speed" },
+        { id: ControlListModel.REVERSE_BUTTON, text: qsTr("Reverse"), icon: "reverse" },
+        { id: ControlListModel.OPEN_BUTTON, text: qsTr("Open"), icon: "folder_open" },
+        { id: ControlListModel.LANG_BUTTON, text: qsTr("Languages"), icon: "subtitles" },
+        { id: ControlListModel.PROGRAM_BUTTON, text: qsTr("Program"), icon: "stream" },
+        { id: ControlListModel.RENDERER_BUTTON, text: qsTr("Cast"), icon: "stream" },
+        { id: ControlListModel.DVD_MENUS_BUTTON, text: qsTr("Disc Menu"), icon: "disc" },
+        { id: ControlListModel.HIGH_RESOLUTION_TIME_WIDGET, text: qsTr("Precise Time"), icon: "timer" }
+    ]
+
+    function customizeInfo(id) {
+        return customizeList.find((e) => e.id === id) ?? { id: id, text: control(id).text ?? "", icon: "" }
     }
 }

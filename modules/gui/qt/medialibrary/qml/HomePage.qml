@@ -79,10 +79,10 @@ Widgets.PageExt {
         id: flickable
 
         implicitWidth: Math.max(coneNButtons.implicitWidth, mediaRows.implicitWidth)
-        implicitHeight: coneNButtons.implicitHeight + (_hasMedias ? mediaRows.implicitHeight : 0)
+        implicitHeight: (coneNButtons.visible ? coneNButtons.implicitHeight : 0) + (_hasMedias ? mediaRows.implicitHeight : 0)
 
         contentWidth: width
-        contentHeight: _hasMedias ? coneNButtons.implicitHeight + mediaRows.implicitHeight
+        contentHeight: _hasMedias ? mediaRows.implicitHeight
                                   : height - topMargin - bottomMargin
 
         flickableDirection: Flickable.AutoFlickIfNeeded
@@ -102,6 +102,7 @@ Widgets.PageExt {
                   && !newVideoRow.model.loading && !newMusicRow.model.loading
             value: continueWatchingRow.visible || favoritesRow.visible
                    || newVideoRow.visible || newMusicRow.visible
+                   || listenAgainRow.visible || foldersRow.visible
             restoreMode: Binding.RestoreNone
         }
 
@@ -158,6 +159,8 @@ Widgets.PageExt {
 
             focus: true
 
+            visible: !flickable._hasMedias
+
             orientation: flickable._hasMedias ? Qt.Horizontal : Qt.Vertical
 
             anchors.centerIn: flickable._hasMedias ? undefined : parent
@@ -179,7 +182,7 @@ Widgets.PageExt {
         Widgets.NavigableCol {
             id: mediaRows
 
-            anchors.top: coneNButtons.bottom
+            anchors.top: coneNButtons.visible ? coneNButtons.bottom : parent.top
             anchors.left: parent.left
             anchors.right: parent.right
 
@@ -269,6 +272,143 @@ Widgets.PageExt {
             }
 
             Widgets.ViewHeader {
+                visible: listenAgainRow.visible
+                text: qsTr("Listen Again")
+                view: listenAgainRow
+                seeAllButton.visible: true
+
+                onSeeAllButtonClicked: function (reason) {
+                    History.push(["music", "tracks"], reason)
+                }
+            }
+
+            MediaView {
+                id: listenAgainRow
+
+                AccessibleCompat.id: "listenAgain"
+
+                anchors.left: parent.left
+                anchors.right: parent.right
+
+                height: currentItem?.contentHeight ?? implicitHeight
+
+                visible: model.count !== 0
+
+                listHeaderPositioning: ListView.InlineHeader
+                enableBeginningFade: false
+                enableEndFade: false
+                listSectionProperty: ""
+
+                interactive: false
+
+                emptyLabel: null
+
+                reuseItems: !MainCtx.gridView
+
+                listCoverWidth: root.listCoverWidth
+                listCoverHeight: root.listCoverHeight
+                listCoverRadius: root.listCoverRadius
+
+                Navigation.parentItem: mediaRows
+
+                model: MLRecentAudioModel {
+                    ml: MediaLib
+
+                    searchPattern: root.search.pattern
+
+                    // FIXME: Make limit 0 load no items, instead of loading all items.
+                    limit: MainCtx.gridView ? Math.max(listenAgainRow.currentItem?.nbItemPerRow ?? null, 1) : 5
+                }
+            }
+
+            Widgets.ViewHeader {
+                visible: foldersRow.visible
+                text: qsTr("Frequently Visited Folders")
+                view: foldersRow
+                seeAllButton.visible: true
+
+                onSeeAllButtonClicked: function (reason) {
+                    MainCtx.grouping = MainCtx.GROUPING_FOLDER
+                    History.push(["video", "all"], reason)
+                }
+            }
+
+            // folders of videos, as plain cards with a folder icon
+            Flow {
+                id: foldersRow
+
+                readonly property int contentLeftMargin: continueWatchingRow.contentLeftMargin ?? VLCStyle.margin_large
+                readonly property int contentRightMargin: continueWatchingRow.contentRightMargin ?? VLCStyle.margin_large
+                readonly property real cardSize: VLCStyle.dp(200, VLCStyle.scale)
+
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.leftMargin: contentLeftMargin
+                anchors.rightMargin: contentRightMargin
+
+                spacing: VLCStyle.dp(20, VLCStyle.scale)
+                visible: folderRepeater.count > 0
+
+                MLVideoFoldersModel {
+                    id: foldersModel
+
+                    ml: MediaLib
+                    sortCriteria: "title"
+                    limit: 6
+                }
+
+                Repeater {
+                    id: folderRepeater
+
+                    model: foldersModel
+
+                    delegate: T.AbstractButton {
+                        id: folderCard
+
+                        required property var model
+
+                        width: foldersRow.cardSize
+                        height: foldersRow.cardSize + VLCStyle.dp(30, VLCStyle.scale)
+
+                        onClicked: History.push(["video", "all", "group"],
+                                                { parentId: model.id, title: model.title },
+                                                Qt.MouseFocusReason)
+
+                        background: null
+
+                        contentItem: Column {
+                            spacing: VLCStyle.dp(8, VLCStyle.scale)
+
+                            Rectangle {
+                                width: foldersRow.cardSize
+                                height: foldersRow.cardSize
+                                radius: VLCStyle.gridCover_radius
+                                color: folderCard.hovered ? Qt.lighter(PanelStyle.colors((theme.palette?.isDark ?? true)).hover, 1.15)
+                                                          : PanelStyle.colors((theme.palette?.isDark ?? true)).hover
+
+                                Widgets.PanelIcon {
+                                    anchors.centerIn: parent
+                                    name: "folder"
+                                    size: VLCStyle.dp(44, VLCStyle.scale)
+                                    color: PanelStyle.colors((theme.palette?.isDark ?? true)).label
+                                }
+                            }
+
+                            Text {
+                                width: foldersRow.cardSize
+                                text: folderCard.model.title
+                                elide: Text.ElideRight
+                                font.pixelSize: VLCStyle.dp(15, VLCStyle.scale)
+                                color: PanelStyle.colors((theme.palette?.isDark ?? true)).text
+                            }
+                        }
+
+                        Accessible.name: model.title
+                    }
+                }
+            }
+
+            Widgets.ViewHeader {
                 visible: favoritesRow.visible
                 text: qsTr("Favorites")
                 view: favoritesRow
@@ -316,7 +456,8 @@ Widgets.PageExt {
                     ml: MediaLib
 
                     sortCriteria: root.sort.criteria || "insertion"
-                    sortOrder: root.sort.order
+                    // the newest first, unless sorted otherwise
+                    sortOrder: root.sort.criteria ? root.sort.order : Qt.DescendingOrder
                     searchPattern: root.search.pattern
 
                     // FIXME: Make limit 0 load no items, instead of loading all items.
@@ -390,7 +531,8 @@ Widgets.PageExt {
                     ml: MediaLib
 
                     sortCriteria: root.sort.criteria || "insertion"
-                    sortOrder: root.sort.order
+                    // the newest first, unless sorted otherwise
+                    sortOrder: root.sort.criteria ? root.sort.order : Qt.DescendingOrder
                     searchPattern: root.search.pattern
 
                     // FIXME: Make limit 0 load no items, instead of loading all items.
@@ -470,7 +612,8 @@ Widgets.PageExt {
                     ml: MediaLib
 
                     sortCriteria: root.sort.criteria || "insertion"
-                    sortOrder: root.sort.order
+                    // the newest first, unless sorted otherwise
+                    sortOrder: root.sort.criteria ? root.sort.order : Qt.DescendingOrder
                     searchPattern: root.search.pattern
 
                     // FIXME: Make limit 0 load no items, instead of loading all items.

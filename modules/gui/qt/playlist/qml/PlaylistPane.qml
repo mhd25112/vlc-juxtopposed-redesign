@@ -38,6 +38,10 @@ T.Pane {
 
     property bool useAcrylic: true
 
+    // Queue, Bookmarks and Chapters tabs, in the player
+    property bool tabbed: false
+    property int tab: 0
+
     readonly property real minimumWidth: contentItem.Layout.minimumWidth +
                                          leftPadding +
                                          rightPadding +
@@ -122,8 +126,36 @@ T.Pane {
 
         readonly property ListView listView: listView
 
+        Widgets.PanelTabBar {
+            Layout.fillWidth: true
+            Layout.leftMargin: VLCStyle.margin_xsmall
+            Layout.rightMargin: VLCStyle.margin_xsmall
+
+            visible: root.tabbed
+            model: [
+                { text: qsTr("Queue"), icon: "queue" },
+                { text: qsTr("Bookmarks"), icon: "bookmark" },
+                { text: qsTr("Chapters"), icon: "chapters" }
+            ]
+            currentIndex: root.tab
+            onActivated: (index) => root.tab = index
+        }
+
+        // bookmarks and chapters of what plays
+        Loader {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+
+            active: root.tabbed && root.tab > 0
+            visible: active
+            source: root.tab === 1 ? "qrc:///qt/qml/VLC/Player/QueueBookmarks.qml"
+                                   : "qrc:///qt/qml/VLC/Player/QueueChapters.qml"
+        }
+
         Column {
             id: headerColumn
+
+            visible: !root.tabbed || root.tab === 0
 
             Layout.fillHeight: false
             Layout.fillWidth: true
@@ -326,6 +358,8 @@ T.Pane {
 
         Widgets.ListViewExt {
             id: listView
+
+            visible: !root.tabbed || root.tab === 0
 
             Layout.fillWidth: true
             Layout.fillHeight: true

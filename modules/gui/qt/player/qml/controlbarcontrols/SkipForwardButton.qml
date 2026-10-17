@@ -23,12 +23,13 @@ import VLC.Style
 import VLC.Player
 import VLC.Util
 
-Widgets.IconToolButton {
+// the short jump, its length on the icon
+Widgets.SvgToolButton {
     id: stepfwdBtn
 
     enabled: Player.seekable
 
-    text: VLCIcons.skip_for
+    iconName: PanelStyle.skipIcon(true, PlayerTweaks.option("short-jump-size"))
     onClicked: Player.jumpFwd()
     description: qsTr("Step forward")
 

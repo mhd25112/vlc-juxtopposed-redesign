@@ -1,5 +1,11 @@
 # VLC media player
 
+> **This fork** implements part of the VLC redesign by
+> [Juxtopposed](https://juxtopposed.com) from her video
+> [I Redesigned VLC After 25 Years](https://youtu.be/ERFeOgqk324):
+> see [REDESIGN.md](REDESIGN.md). It is unofficial and not affiliated with
+> VideoLAN.
+
 **VLC** is a libre and open source **media player** and **multimedia engine**,
 focused on **playing everything**, and **running everywhere**.
 

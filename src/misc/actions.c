@@ -433,6 +433,26 @@ static int vlc_key_to_action (vlc_object_t *obj, const char *varname,
 
     const struct mapping *ent = *pent;
 
+    /* Remember which key triggered the action, so that the on-screen message
+     * it causes can tell how to undo it. Mouse wheel turns are left out. */
+    uint32_t key = keycode & ~KEY_MODIFIER;
+    if (key < KEY_MOUSEWHEELUP || key > KEY_MOUSEWHEELRIGHT)
+    {
+        char *keyname = vlc_keycode2str (keycode, true);
+        if (keyname != NULL)
+        {
+            /* Letters as printed on keyboards: "Ctrl+B", not "Ctrl+b" */
+            char *last = strrchr (keyname, '+');
+            last = (last != NULL && last[1] != '\0') ? last + 1 : keyname;
+            if (last[0] >= 'a' && last[0] <= 'z' && last[1] == '\0')
+                last[0] -= 'a' - 'A';
+
+            var_SetString (obj, "key-action-name", keyname);
+            var_SetInteger (obj, "key-action-date", vlc_tick_now ());
+            free (keyname);
+        }
+    }
+
     (void) varname;
     (void) prevkey;
     return var_SetInteger (obj, "key-action", ent->action);
@@ -539,6 +559,8 @@ int libvlc_InternalActionsInit (libvlc_int_t *libvlc)
     var_Create (obj, "key-pressed", VLC_VAR_INTEGER);
     var_Create (obj, "global-key-pressed", VLC_VAR_INTEGER);
     var_Create (obj, "key-action", VLC_VAR_INTEGER);
+    var_Create (obj, "key-action-name", VLC_VAR_STRING);
+    var_Create (obj, "key-action-date", VLC_VAR_INTEGER);
 
     /* Initialize from configuration */
     for (size_t i = 0; i < ARRAY_SIZE(s_names2actions); i++)

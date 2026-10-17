@@ -843,6 +843,11 @@ static const char* const ppsz_restore_playback_desc[] = {
     "VLC can display messages on the video. This is called OSD (On Screen " \
     "Display).")
 
+#define OSD_SHOW_KEY_TEXT N_("Show the pressed shortcut in messages")
+#define OSD_SHOW_KEY_LONGTEXT N_( \
+    "When a keyboard shortcut changes something, add the shortcut to the " \
+    "on screen message, so that it is easy to know what to press to undo it.")
+
 #define TEXTRENDERER_TEXT N_("Text rendering module")
 #define TEXTRENDERER_LONGTEXT N_( \
     "VLC normally uses Freetype for rendering, but this allows you to use svg for instance.")
@@ -871,6 +876,14 @@ static const char* const ppsz_restore_playback_desc[] = {
     "2 = any subtitle file containing the movie name\n" \
     "3 = subtitle file matching the movie name with additional chars\n" \
     "4 = subtitle file matching the movie name exactly")
+static const int pi_sub_fuzzy_values[] = { 0, 1, 2, 3, 4 };
+static const char *const ppsz_sub_fuzzy_texts[] = {
+    N_("Never load subtitle files automatically"),
+    N_("Any subtitle file in the folder"),
+    N_("Subtitle files containing the movie name"),
+    N_("Subtitle files starting with the movie name"),
+    N_("Subtitle files named exactly like the movie"),
+};
 
 #define SUB_PATH_TEXT N_("Subtitle autodetection paths")
 #define SUB_PATH_LONGTEXT N_( \
@@ -1806,6 +1819,7 @@ vlc_module_begin ()
     add_bool( "spu-fill", true, SPU_FULL_TEXT, SPU_FULL_LONGTEXT )
         change_safe ()
     add_bool( "osd", true, OSD_TEXT, OSD_LONGTEXT )
+    add_bool( "osd-show-key", true, OSD_SHOW_KEY_TEXT, OSD_SHOW_KEY_LONGTEXT )
     add_module("text-renderer", "text renderer", "any",
                TEXTRENDERER_TEXT, TEXTRENDERER_LONGTEXT)
 
@@ -1818,6 +1832,7 @@ vlc_module_begin ()
                  SUB_AUTO_TEXT, SUB_AUTO_LONGTEXT )
     add_integer( "sub-autodetect-fuzzy", 3,
                  SUB_FUZZY_TEXT, SUB_FUZZY_LONGTEXT )
+        change_integer_list( pi_sub_fuzzy_values, ppsz_sub_fuzzy_texts )
 #if defined( _WIN32 ) || defined( __OS2__ )
 #   define SUB_PATH ".\\subtitles, .\\subs"
 #else

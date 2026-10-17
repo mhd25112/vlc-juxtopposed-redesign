@@ -40,9 +40,59 @@ vlc_player_osd_HoldAll(vlc_player_t *player, size_t *count)
     {
         vout_FlushSubpictureChannel(vouts[i], VOUT_SPU_CHANNEL_OSD);
         vout_FlushSubpictureChannel(vouts[i], VOUT_SPU_CHANNEL_OSD_HSLIDER);
-        vout_FlushSubpictureChannel(vouts[i], VOUT_SPU_CHANNEL_OSD_HSLIDER);
+        vout_FlushSubpictureChannel(vouts[i], VOUT_SPU_CHANNEL_OSD_VSLIDER);
     }
     return vouts;
+}
+
+/* Name of the shortcut that triggered the action being displayed, if a key
+ * was just pressed, so that the user knows what to press to undo it. */
+static char *
+osd_GetKeyHint(vlc_object_t *obj)
+{
+    if (!var_InheritBool(obj, "osd-show-key"))
+        return NULL;
+
+    libvlc_int_t *libvlc = vlc_object_instance(obj);
+    vlc_tick_t date = var_GetInteger(libvlc, "key-action-date");
+    if (date == 0 || vlc_tick_now() - date > VLC_TICK_FROM_MS(500))
+        return NULL;
+
+    char *name = var_GetString(libvlc, "key-action-name");
+    if (name != NULL && name[0] == '\0')
+    {
+        free(name);
+        return NULL;
+    }
+    return name;
+}
+
+static char *
+osd_FormatMessage(vlc_object_t *obj, const char *fmt, va_list args)
+{
+    char *text;
+    if (vasprintf(&text, fmt, args) == -1)
+        return NULL;
+
+    char *key = osd_GetKeyHint(obj);
+    if (key != NULL)
+    {
+        char *pressed;
+        /* TRANSLATORS: Second line of an on-screen message, %s is the
+         * keyboard shortcut that caused it, such as "Ctrl+B". */
+        if (asprintf(&pressed, _("Pressed %s"), key) != -1)
+        {
+            char *text_with_key;
+            if (asprintf(&text_with_key, "%s\n%s", text, pressed) != -1)
+            {
+                free(text);
+                text = text_with_key;
+            }
+            free(pressed);
+        }
+        free(key);
+    }
+    return text;
 }
 
 static void
@@ -58,16 +108,19 @@ vlc_player_osd_ReleaseAll(vlc_player_t *player, vout_thread_t **vouts,
 static inline void
 vouts_osd_Message(vout_thread_t **vouts, size_t count, const char *fmt, ...)
 {
+    if (count == 0)
+        return;
+
     va_list args;
     va_start(args, fmt);
-    for (size_t i = 0; i < count; ++i)
-    {
-        va_list acpy;
-        va_copy(acpy, args);
-        vout_OSDMessageVa(vouts[i], VOUT_SPU_CHANNEL_OSD, fmt, acpy);
-        va_end(acpy);
-    }
+    char *text = osd_FormatMessage(VLC_OBJECT(vouts[0]), fmt, args);
     va_end(args);
+    if (text == NULL)
+        return;
+
+    for (size_t i = 0; i < count; ++i)
+        vout_OSDMessage(vouts[i], VOUT_SPU_CHANNEL_OSD, "%s", text);
+    free(text);
 }
 
 static inline void
@@ -94,14 +147,15 @@ vlc_player_osd_Message(vlc_player_t *player, const char *fmt, ...)
 
     va_list args;
     va_start(args, fmt);
-    for (size_t i = 0; i < count; ++i)
-    {
-        va_list acpy;
-        va_copy(acpy, args);
-        vout_OSDMessageVa(vouts[i], VOUT_SPU_CHANNEL_OSD, fmt, acpy);
-        va_end(acpy);
-    }
+    char *text = osd_FormatMessage(VLC_OBJECT(player), fmt, args);
     va_end(args);
+
+    if (text != NULL)
+    {
+        for (size_t i = 0; i < count; ++i)
+            vout_OSDMessage(vouts[i], VOUT_SPU_CHANNEL_OSD, "%s", text);
+        free(text);
+    }
 
     vlc_player_osd_ReleaseAll(player, vouts, count);
 }

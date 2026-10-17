@@ -108,6 +108,9 @@ static const char *const ppsz_color_descriptions[] = {
   N_("Red"), N_("Fuchsia"), N_("Yellow"), N_("Olive"), N_("Green"), N_("Teal"),
   N_("Lime"), N_("Purple"), N_("Navy"), N_("Blue"), N_("Aqua") };
 
+#define FONTSIZE_TEXT N_("Font size in pixels")
+#define FONTSIZE_LONGTEXT N_("Size of the text in pixels of the picture. "     "0 makes it relative to the video height, scaled by the text scale "     "of the video output.")
+
 static const int pi_outline_thickness[] = {
     0, 2, 4, 6,
 };
@@ -146,6 +149,10 @@ vlc_module_begin ()
     add_loadfile("freetype-monofont", DEFAULT_MONOSPACE_FONT_FILE,
                  MONOSPACE_FONT_TEXT, FONT_LONGTEXT)
 #endif
+
+    add_integer_with_range( "freetype-fontsize", 0, 0, 4096,
+                            FONTSIZE_TEXT, FONTSIZE_LONGTEXT )
+        change_safe()
 
     /* opacity valid on 0..255, with default 255 = fully opaque */
     add_integer_with_range( "freetype-opacity", 255, 0, 255,
@@ -195,7 +202,6 @@ vlc_module_begin ()
                             CACHE_SIZE_TEXT, CACHE_SIZE_LONGTEXT )
         change_safe()
 
-    add_obsolete_integer( "freetype-fontsize" ) /* since 4.0.0 */
     add_obsolete_integer( "freetype-rel-fontsize" ) /* since 4.0.0 */
 
     add_bool( "freetype-yuvp", false, YUVP_TEXT,
@@ -713,11 +719,56 @@ static void UpdateDefaultLiveStyles( filter_t *p_filter )
     text_style_t *p_style = p_sys->p_default_style;
 
     p_style->i_font_color = var_InheritInteger( p_filter, "freetype-color" );
+    p_style->i_font_alpha = var_InheritInteger( p_filter, "freetype-opacity" );
 
     p_style->i_background_alpha = var_InheritInteger( p_filter, "freetype-background-opacity" );
     p_style->i_background_color = var_InheritInteger( p_filter, "freetype-background-color" );
 
+    p_style->i_outline_alpha = var_InheritInteger( p_filter, "freetype-outline-opacity" );
+    p_style->i_outline_color = var_InheritInteger( p_filter, "freetype-outline-color" );
+
     p_sys->i_outline_thickness = var_InheritInteger( p_filter, "freetype-outline-thickness" );
+
+    /* Either a size in pixels or a size relative to the video */
+    const int i_font_size = var_InheritInteger( p_filter, "freetype-fontsize" );
+    if( i_font_size > 0 )
+    {
+        p_style->i_font_size = i_font_size;
+        p_style->f_font_relsize = 0;
+    }
+    else
+    {
+        p_style->i_font_size = 0;
+        p_style->f_font_relsize = STYLE_DEFAULT_REL_FONT_SIZE;
+    }
+
+#ifdef HAVE_GET_FONT_BY_FAMILY_NAME
+    /* The player can change the font while playing */
+    char *psz_fontname = var_InheritString( p_filter, "freetype-font" );
+    if( psz_fontname && *psz_fontname &&
+        ( !p_style->psz_fontname || strcmp( psz_fontname, p_style->psz_fontname ) ) )
+    {
+        free( p_style->psz_fontname );
+        p_style->psz_fontname = psz_fontname;
+    }
+    else
+        free( psz_fontname );
+#endif
+
+    text_style_t *p_forced = p_sys->p_forced_style;
+    if( var_InheritBool( p_filter, "freetype-bold" ) )
+    {
+        p_forced->i_style_flags |= STYLE_BOLD;
+        p_forced->i_features |= STYLE_HAS_FLAGS;
+        p_style->i_style_flags |= STYLE_BOLD;
+    }
+    else if( p_forced->i_style_flags & STYLE_BOLD )
+    {
+        p_forced->i_style_flags &= ~STYLE_BOLD;
+        if( p_forced->i_style_flags == 0 )
+            p_forced->i_features &= ~STYLE_HAS_FLAGS;
+        p_style->i_style_flags &= ~STYLE_BOLD;
+    }
 }
 
 static void FillDefaultStyles( filter_t *p_filter )
@@ -746,25 +797,13 @@ static void FillDefaultStyles( filter_t *p_filter )
 
     UpdateDefaultLiveStyles( p_filter );
 
-    p_sys->p_default_style->i_font_alpha = var_InheritInteger( p_filter, "freetype-opacity" );
-
-    p_sys->p_default_style->i_outline_alpha = var_InheritInteger( p_filter, "freetype-outline-opacity" );
-    p_sys->p_default_style->i_outline_color = var_InheritInteger( p_filter, "freetype-outline-color" );
-
     p_sys->p_default_style->i_shadow_alpha = var_InheritInteger( p_filter, "freetype-shadow-opacity" );
     p_sys->p_default_style->i_shadow_color = var_InheritInteger( p_filter, "freetype-shadow-color" );
     p_sys->p_default_style->e_blending_mode = var_InheritInteger( p_filter, "freetype-blending-mode" );
     p_sys->p_default_style->i_features |= STYLE_HAS_BLENDING_MODE;
 
-    p_sys->p_default_style->i_font_size = 0;
     p_sys->p_default_style->i_style_flags |= STYLE_SHADOW;
     p_sys->p_default_style->i_features |= STYLE_HAS_FLAGS;
-
-    if( var_InheritBool( p_filter, "freetype-bold" ) )
-    {
-        p_sys->p_forced_style->i_style_flags |= STYLE_BOLD;
-        p_sys->p_forced_style->i_features |= STYLE_HAS_FLAGS;
-    }
 
     /* Apply forced styles to defaults, if any */
     text_style_Merge( p_sys->p_default_style, p_sys->p_forced_style, true );

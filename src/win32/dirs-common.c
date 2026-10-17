@@ -94,10 +94,10 @@ char *config_GetSysPath(vlc_sysdir_t type, const char *filename)
             dir = config_GetLibDir();
             break;
         case VLC_PKG_LIBEXEC_DIR:
+            /* As on other platforms, the requested file (vlc-preparser.exe)
+             * is looked for inside the overridden directory. */
             dir = getenv ("VLC_LIBEXEC_PATH");
-            if (dir)
-                return strdup( dir );
-            dir = config_GetLibexecDir();
+            dir = (dir != NULL) ? strdup( dir ) : config_GetLibexecDir();
             break;
         case VLC_SYSDATA_DIR:
             break;

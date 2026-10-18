@@ -263,6 +263,12 @@ void VideoSurface::synchronize()
         position = renderPosition();
     }
 
+    // not laid out yet (a new surface, while its view loads): reporting its
+    // position alone would show the video at the corner of the window, at
+    // the size of the previous surface, until the layout is done
+    if (size.isEmpty())
+        return;
+
     std::optional<QSizeF> newSize;
     std::optional<QPointF> newPosition;
     std::optional<qreal> newScale;

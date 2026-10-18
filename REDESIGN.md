@@ -17,51 +17,59 @@ test media.
 
 ## The library
 
-- A rounded navigation panel (Home, Videos, Music, Network, Playlists, Recent),
-  with "Add item" (a folder, a network stream or a new playlist) and Settings at
-  the bottom.
+- A rounded navigation panel: Home, Videos, Music, Network, Playlists, Recent
+  and "Add item" (a folder, a network stream or a new playlist).
 - **Home**: Continue Watching, Listen Again (title and artist), Frequently
   Visited Folders, then the newest videos and music.
+- **Videos are the folders on the disk**: *Videos › Shows › The Wand › S01*,
+  each part of the path a step back. A folder holding a single folder is
+  skipped. All the videos, as one list, are in the "..." menu of the header.
 - A header with back/forward, the path, the item count, sorting (including
   *Unwatched First* and *Watched First*), the grid/list switch, search, "+" and
   "...".
-- **Grid** cards show the name only; what was watched is dimmed, with its
-  progress as an accent line under the picture. Videos are listed by name.
+- **Grid** cards show the file name only; what was watched is dimmed, with its
+  progress as an accent line under the picture, and what plays is in the
+  accent color.
 - **List** view: the compact list of the design, in columns, with small
   pictures.
 - **Mini player**: a card in a bottom corner with the video itself (or the
   cover), its progress (click or drag to seek, the time shows on hover), the
   file name, its folder (a click opens it in the library), and the queue under a
-  button. Drag it to the other corner; double click the picture to go back to
-  the player.
+  button. Its controls fade in on hover; drag it to the other corner; double
+  click the picture to go back to the player.
 - **Right-click menus** in the style of the design, with its items: Play, Mark
   as Watched, Favorite, Stream, Convert, Add to Queue, Add to Playlist, Show in
   File Explorer, Go to Source, Add Subtitle Tracks, Properties & Metadata.
 
 ![Library, grid and mini player](doc/redesign/library-grid.png)
 ![Library, list](doc/redesign/library-list.png)
+![Videos as folders](doc/redesign/library-folders.png)
 ![Library menu](doc/redesign/library-menu.png)
 
 ## The player
 
 - **Title bar**: the "..." menu (open media, recent files, profiles, keyboard
-  shortcuts, Customize Player, settings), the library button, the folder of
-  what plays, picture-in-picture and fullscreen.
+  shortcuts, Customize Player, settings), the library, the folder of what plays,
+  its name in the middle, and fullscreen next to the window buttons. It is
+  arranged in Customize Player like the control bar.
 - **Control bar**: one thin row with previous/play/next, the time as
   `00:02:10`, a thick flat seek bar, the volume cone, audio, subtitles,
-  settings and queue.
+  settings and queue. Its icons light up on hover.
 - **Seek preview**: hovering the seek bar shows the frame at that time, made in
   the background by VLC's thumbnailer.
 - **Settings sidebar** with Playback, Video, Audio and Subtitles tabs: speed,
   sleep timer, audio visualizer; video filters, colors, crop and zoom; the equalizer
   with its curves, compressor, spatializer, stereo widener and an audio test;
-  subtitle delay, speed, size, colors, outline and saved presets.
+  subtitle delay, speed, size, colors, outline and saved presets. It slides in
+  from the right.
 - **Show Waveform on Seekbar**, **Show Subtitle Timeline on Seekbar** and
   **Show Metadata**: the loudness of the audio along the seek bar, marks where
-  the subtitle lines are, and the format, codecs and size of what plays over the
-  video.
-- **Compact library** next to the video: the folder of what plays, the videos,
-  music, playlists and recent files, with their pictures and progress.
+  the subtitle lines are (from a subtitle file or from the subtitle track inside
+  the video), and the format, codecs and size of what plays over the video.
+- **Library next to the video**: it slides over the video and opens on the
+  folder of what plays (*... › The Wand › S01*), with a rail for Home, Videos
+  (the folders again), Music (Songs as folders, Albums, Artists, Genres),
+  Network, Playlists and Recent.
 - **Continue watching**: for a video left halfway, "You've watched till
   00:12:34 already." with a Continue Watching button, above the control bar.
 - The right-click menu of the video, a click on the video to pause and a double
@@ -71,7 +79,8 @@ test media.
 ![Player and settings sidebar](doc/redesign/player-sidebar.png)
 ![Waveform, subtitle timeline and metadata](doc/redesign/player-overlays.png)
 ![Seek preview](doc/redesign/seek-preview.png)
-![Compact library](doc/redesign/player-library.png)
+![Library next to the video](doc/redesign/player-library.png)
+![Its Home](doc/redesign/player-library-home.png)
 ![Video menu](doc/redesign/player-menu.png)
 
 ## Music
@@ -85,12 +94,18 @@ song is decoded in the background into a small mono file, faster than it plays.
 
 ## Customize Player
 
-The control bar is arranged in place: every control gets a dashed frame and
-can be dragged within the bar, between its left, middle and right groups, from
-the list of controls, or onto the list to take it away. With controls in the
-middle the seek bar goes on a line of its own above them. Save keeps the
-arrangement in the current **profile** ("..." > Profile, with "New" to start
-from a copy).
+The items of the design: Spacer, Divider, Playback Speed, Forward and Backward
+10s and 15s, Stop, Repeat, Shuffle, Record, Snapshot, Picture in Picture, HDR,
+Zoom, Right Sidebar, Quit VLC, VLC Settings, Go Home, Thumbnail, File Name,
+Artist Name, Folder Name, Playlist Name, Properties, Replay, Chapters,
+Favorite, Bookmark, Bookmarks and Playlists.
+
+Both the control bar and the title bar are arranged in place: every item gets
+a dashed frame and can be dragged within its bar, between the left, middle and
+right groups, from the list, or onto the list to take it away. With items in
+the middle of the control bar the seek bar goes on a line of its own above
+them. Save keeps the arrangement in the current **profile** ("..." > Profile,
+with "New" to start from a copy).
 
 ![Customize Player](doc/redesign/customize.png)
 
@@ -101,12 +116,16 @@ from a copy).
 - **Settings**: thirteen pages (App, Media, System) with search, the options of
   the design, advanced options folded, and the full preferences one click away.
 - **Keyboard Shortcuts**: grouped, with conflicts shown and Reset All.
-- **Add Subtitles**: to a file, a folder or the queue, from the computer,
-  OpenSubtitles or a link, matched by name or episode number, and remembered for
-  the next time the media plays.
+- **Add Subtitles**: to a file, a folder or the queue, from the computer, from
+  **OpenSubtitles** or from a link. Files from the computer are matched by name
+  or episode number. OpenSubtitles is searched in VLC, for the subtitles made
+  for the file (by its hash) and by name, in a chosen language; a click
+  downloads one next to the video. The choice is remembered for the next time
+  the media plays.
 - **Open Network Stream** (several links, saved as a playlist when named) and
   **New Playlist** (drop files or pick them).
 
+![Add Subtitles from OpenSubtitles](doc/redesign/subtitles-online.png)
 ![Settings](doc/redesign/settings.png)
 
 ## Themes
@@ -118,16 +137,13 @@ colors that apply everywhere at once.
 
 ## Where it differs from the design
 
-- Customize Player arranges the control bar; the title bar keeps its layout.
-  The list offers VLC's controls, so some items of the design that have no
-  control behind them (Go Home, File Name, Favorite, Replay...) are not there.
-- The subtitle timeline reads subtitle files (next to the video or chosen in
-  Add Subtitles), not subtitles inside the video file.
-- The waveform shows for songs; for videos it is off by default ("Show
-  Waveform on Seekbar"), since it reads the whole file.
-- The path in the header is the library's (Videos > All > S01), not the folders
-  on the disk.
-- Searching OpenSubtitles opens the site in the browser.
+- The window buttons (minimize, maximize, close) stay where they are; the
+  other items of the title bar move.
+- The video title VLC used to print over a video as it starts is off by default,
+  as the title bar shows it (Settings > Subtitle Defaults > On-Screen Messages
+  brings it back).
+- OpenSubtitles is searched with its REST interface (opensubtitles.org),
+  which needs no account but has a daily limit.
 - Developed and tested on Windows only.
 
 ## Fixes found along the way
@@ -137,8 +153,12 @@ colors that apply everywhere at once.
 - The volume on-screen display was never flushed (`src/player/osd.c`).
 - `VLC_LIBEXEC_PATH` dropped the file name on Windows, so `vlc-preparser.exe`
   could not be started from a custom location (`src/win32/dirs-common.c`).
-- The Qt plugin did not link `winmm`, needed by disc ejection, with Meson
-  (`modules/gui/qt/meson.build`).
+- The Qt plugin did not link `winmm`, needed by disc ejection, and the GnuTLS
+  plugin did not link the socket libraries on Windows, with Meson
+  (`modules/gui/qt/meson.build`, `modules/misc/meson.build`).
+- A new video surface reported its position before it had a size, so the
+  video showed for a moment at the corner of the window when switching
+  between the player and the library (`modules/gui/qt/maininterface/videosurface.cpp`).
 
 Also new outside the interface: on-screen messages caused by a keyboard
 shortcut show the key (`--osd-show-key`), and the FreeType text renderer
@@ -156,9 +176,10 @@ contribs:
   apply the same change to the installed `rhi/qrhi.h`, and provide
   `D3D12MemAlloc.h` on the include path.
 - VLC loads plugins with `LOAD_LIBRARY_SEARCH_SYSTEM32` only, so with shared
-  libraries the plugins' dependencies (Qt, FFmpeg...) must be loaded before
-  them, in `vlc.exe` and in `vlc-preparser.exe` (which reads files for the
+  libraries the plugins' dependencies (Qt, FFmpeg, GnuTLS...) must be loaded
+  before them, in `vlc.exe` and in `vlc-preparser.exe` (which reads files for the
   media library, the playlist and the thumbnails).
+- OpenSubtitles needs a TLS plugin (`-Dgnutls=enabled`).
 
 ## License
 

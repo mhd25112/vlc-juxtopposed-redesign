@@ -322,7 +322,10 @@ T.Popup {
 
         background: Rectangle {
             radius: VLCStyle.dp(4, VLCStyle.scale)
-            color: (row.hovered || row.visualFocus) ? row.colors.bg.highlight : "transparent"
+            // the hover grey of the redesign (the Window colors have no
+            // "highlight": it came out magenta)
+            color: (row.hovered || row.visualFocus) ? PanelStyle.colors(row.colors.palette?.isDark ?? true).hover
+                                                    : "transparent"
             border.color: row.visualFocus ? row.colors.visualFocus : "transparent"
         }
 

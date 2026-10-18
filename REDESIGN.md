@@ -69,8 +69,11 @@ test media.
   **Show Metadata**: the loudness of the audio along the seek bar, marks where
   the subtitle lines are (from a subtitle file or from the subtitle track inside
   the video), and the format, codecs and size of what plays over the video.
-  Drag the subtitle marks sideways to move the subtitles earlier or later
-  (double click to reset).
+- **Subtitle timeline**: the seek bar becomes a window of a minute of the
+  subtitles, each line a block, the times on its sides showing where the
+  window starts and ends (*00:06:00\** to *00:07:00\**). Drag the blocks to
+  move the subtitles earlier or later, click to seek, ‹ › to move the window
+  and − + to zoom it; right click resets the delay.
 - **Looks** in the Video tab: Vivid, Bright, Contrast, Muted, Black & White,
   Sepia, Old Movie and VHS, each shown on the picture that plays; a click
   applies the video filters, which can then be tuned below.
@@ -176,6 +179,9 @@ colors that apply everywhere at once.
 - Turning off a video filter that had changed the format of the pictures
   (Sepia, Old Movie... with hardware decoding) froze the picture: the display
   kept the format of the filter (`src/video_output/video_output.c`).
+- VLC crashed on every exit on Windows: the media library destroys its logger
+  (from the media library plugin) when the process exits, after the plugin
+  was unloaded (`modules/misc/medialibrary/medialibrary.cpp`).
 
 Also new outside the interface: on-screen messages caused by a keyboard
 shortcut show the key (`--osd-show-key`), and the FreeType text renderer

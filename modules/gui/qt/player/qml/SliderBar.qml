@@ -59,6 +59,15 @@ T.ProgressBar {
     }
     readonly property bool _showWaveform: flatStyle && (!Player.hasVideoOutput || _waveformForVideos)
                                           && PlayerTweaks.waveform.length > 0
+                                          && !timelineMode
+
+    // the bar as a window of the subtitles (SubtitleTimeline), while
+    // "Show Subtitle Timeline on Seekbar" is on and the media has subtitles;
+    // the time labels then show where the window starts and ends
+    readonly property bool timelineMode: _showSubtitleTimeline && _subtitleCues.length > 1
+                                         && Player.length.valid() && Player.length.toSeconds() > 0
+    readonly property real timelineStart: subtitleWindow.start
+    readonly property real timelineEnd: subtitleWindow.end
 
 
     // "Show Subtitle Timeline on Seekbar": where the lines of the subtitles are
@@ -137,11 +146,13 @@ T.ProgressBar {
         onTriggered: control._isSeekPointsShown = false
     }
 
-    Widgets.PointingToolTipAttached.visible: (hoverHandler.hovered || control.visualFocus || dragHandler.active)
+    Widgets.PointingToolTipAttached.visible: !control.timelineMode
+                                             && (hoverHandler.hovered || control.visualFocus || dragHandler.active)
                                              && !seekPreview.visible
 
     // videos: a picture of where the pointer is, over the bar
     readonly property bool _showPreview: flatStyle && Player.hasVideoOutput && Player.seekable && hoverHandler.hovered
+                                         && !timelineMode
 
     Timer {
         id: previewRequest
@@ -373,6 +384,8 @@ T.ProgressBar {
         //placing the TapHandler directly in the Control doesn't work with 6.2
         TapHandler {
             acceptedButtons: Qt.LeftButton
+            // the subtitle window handles the pointer itself
+            enabled: !control.timelineMode
 
             gesturePolicy: TapHandler.WithinBounds
 
@@ -392,6 +405,7 @@ T.ProgressBar {
         DragHandler {
             id: dragHandler
             acceptedButtons: Qt.LeftButton
+            enabled: !control.timelineMode
 
             // Make it easier to drag with touch screen:
             margin: MainCtx.usingTouch ? control.touchHandlerMargin : 0
@@ -460,6 +474,23 @@ T.ProgressBar {
                 wheelLeftRight.connect(wheelToVLC, wheelToVLC.handleHorizontal)
             }
         }
+    }
+
+    SubtitleTimeline {
+        id: subtitleWindow
+
+        x: control.background.x
+        y: control.background.y
+        width: control.background.width
+        height: control.background.height
+        z: 10
+
+        visible: control.timelineMode
+        enabled: visible
+
+        cues: control._subtitleCues
+        accent: theme.accent
+        panel: control._panel
     }
 
     background: Item {
@@ -583,8 +614,6 @@ T.ProgressBar {
             anchors.fill: parent
             anchors.leftMargin: VLCStyle.dp(6, VLCStyle.scale)
             anchors.rightMargin: VLCStyle.dp(6, VLCStyle.scale)
-            // room for the subtitle timeline under it
-            anchors.bottomMargin: subtitleTimeline.visible ? VLCStyle.dp(6, VLCStyle.scale) : 0
 
             visible: control._showWaveform
 
@@ -611,86 +640,6 @@ T.ProgressBar {
                     radius: width / 2
                     color: ((index + 0.5) / waveformBars.count) <= control.visualPosition ? theme.accent
                                                                                          : control._panel.label
-                }
-            }
-        }
-
-        Canvas {
-            id: subtitleTimeline
-
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.bottom: parent.bottom
-            anchors.leftMargin: VLCStyle.border
-            anchors.rightMargin: VLCStyle.border
-            anchors.bottomMargin: VLCStyle.dp(3, VLCStyle.scale)
-            height: VLCStyle.dp(3, VLCStyle.scale)
-            z: 1
-
-            visible: control._showSubtitleTimeline && control._subtitleCues.length > 0
-
-            readonly property var cues: control._subtitleCues
-            readonly property real length: Player.length.valid() ? Player.length.toSeconds() : 0
-            readonly property color color: timelineMouse.pressed || timelineMouse.containsMouse ? theme.accent
-                                                                                                : control._panel.bright
-            // where the lines show: their time plus the subtitle delay
-            readonly property real delay: Player.subtitleDelayMS / 1000
-
-            onCuesChanged: requestPaint()
-            onDelayChanged: requestPaint()
-            onLengthChanged: requestPaint()
-            onWidthChanged: requestPaint()
-            onColorChanged: requestPaint()
-
-            onPaint: {
-                const ctx = getContext("2d")
-                ctx.reset()
-                if (length <= 0)
-                    return
-                ctx.fillStyle = color
-                for (let i = 0; i + 1 < cues.length; i += 2) {
-                    const x = (cues[i] + delay) / length * width
-                    const w = Math.max(1, (cues[i + 1] - cues[i]) / length * width)
-                    ctx.fillRect(x, 0, w, height)
-                }
-            }
-
-            // dragged sideways, the subtitles come earlier or later
-            MouseArea {
-                id: timelineMouse
-
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.bottom: parent.bottom
-                anchors.bottomMargin: -VLCStyle.dp(3, VLCStyle.scale)
-                height: VLCStyle.dp(9, VLCStyle.scale)
-
-                hoverEnabled: true
-                preventStealing: true
-                cursorShape: Qt.SizeHorCursor
-
-                property real _startX
-                property int _startDelay
-
-                onPressed: (mouse) => {
-                    _startX = mouse.x
-                    _startDelay = Player.subtitleDelayMS
-                }
-                onPositionChanged: (mouse) => {
-                    if (!pressed || subtitleTimeline.length <= 0 || width <= 0)
-                        return
-                    Player.subtitleDelayMS = Math.round(_startDelay
-                                                        + (mouse.x - _startX) / width * subtitleTimeline.length * 1000)
-                }
-                onDoubleClicked: Player.subtitleDelayMS = 0
-
-                T.ToolTip.visible: containsMouse || pressed
-                T.ToolTip.delay: pressed ? 0 : VLCStyle.delayToolTipAppear
-                T.ToolTip.text: {
-                    const d = Player.subtitleDelayMS / 1000
-                    const delayText = (d > 0 ? "+" : "") + d.toFixed(2) + " s"
-                    return pressed ? qsTr("Subtitle delay: %1").arg(delayText)
-                                   : qsTr("Drag to move the subtitles (delay %1), double click to reset").arg(delayText)
                 }
             }
         }

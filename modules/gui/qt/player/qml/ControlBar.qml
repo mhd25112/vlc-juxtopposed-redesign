@@ -116,6 +116,12 @@ T.Pane {
     }
 
     // the redesign's times, always with the hours: 00:02:10
+    function _hmsSeconds(seconds) {
+        const total = Math.max(0, Math.floor(seconds))
+        const pad = (n) => String(n).padStart(2, "0")
+        return pad(Math.floor(total / 3600)) + ":" + pad(Math.floor(total / 60) % 60) + ":" + pad(total % 60)
+    }
+
     function _hms(tick) {
         if (!tick.valid())
             return "--:--:--"
@@ -134,6 +140,8 @@ T.Pane {
             // Length might not be reported in some cases, for that reason we should check both and use the bigger one.
 
             // Some extra space to compensate non-monospaced fonts ("-" takes more space than ":", double "-" for guarantee)
+            if (trackPositionSlider.timelineMode)
+                return "00--00--00*" // the edges of the subtitle window
             return (!root.flatSlider && Player.time.isSubHour() && Player.length.isSubHour()) ? "00--00" : "00--00--00"
         }
     }
@@ -183,6 +191,8 @@ T.Pane {
                 Layout.preferredWidth: (textPosition === ControlBar.TimeTextPosition.LeftRightSlider) ? timeTextMetrics.width : -1
 
                 text: {
+                    if (trackPositionSlider.timelineMode)
+                        return root._hmsSeconds(trackPositionSlider.timelineStart) + "*"
                     if (root.flatSlider)
                         return root._hms(Player.time)
                     const length = Player.length
@@ -211,7 +221,9 @@ T.Pane {
 
                 readonly property bool showRemainingTime: (MainCtx.showRemainingTime && Player.remainingTime.valid())
 
-                text: root.flatSlider
+                text: trackPositionSlider.timelineMode
+                      ? root._hmsSeconds(trackPositionSlider.timelineEnd) + "*"
+                      : root.flatSlider
                       ? (showRemainingTime ? "-" + root._hms(Player.remainingTime) : root._hms(Player.length))
                       : showRemainingTime
                         ? "-" + Player.remainingTime.formatHMS()

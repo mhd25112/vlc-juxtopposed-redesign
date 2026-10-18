@@ -105,6 +105,8 @@ T.Popup {
 
     width: menuWidth
     implicitHeight: column.implicitHeight + topPadding + bottomPadding
+    // in a small window: as tall as the window, the rows scroll
+    height: Math.min(implicitHeight, Math.max(VLCStyle.dp(120, VLCStyle.scale), (parent?.height ?? implicitHeight)))
     padding: VLCStyle.dp(4, VLCStyle.scale)
 
     // a press outside closes it and still reaches what is under it (another
@@ -163,120 +165,139 @@ T.Popup {
         }
     }
 
-    contentItem: ColumnLayout {
-        id: column
+    contentItem: Flickable {
+        // the colors of the items inside (the scroll bar): popups live in the
+        // overlay, where no colors are inherited (they came out magenta)
+        readonly property ColorContext colorContext: ColorContext {
+            colorSet: ColorContext.View
+            palette: VLCStyle.palette
+        }
 
-        spacing: 0
+        clip: true
+        contentWidth: width
+        contentHeight: column.implicitHeight
+        interactive: contentHeight > height
+        boundsBehavior: Flickable.StopAtBounds
 
-        Repeater {
-            model: root.model
+        T.ScrollBar.vertical: ScrollBarExt { }
 
-            delegate: Item {
-                id: row
+        ColumnLayout {
+            id: column
 
-                required property int index
-                required property var modelData
+            width: parent.width
 
-                readonly property bool isSeparator: modelData?.separator === true
-                readonly property bool hasSubmenu: !!modelData?.submenu
+            spacing: 0
 
-                Layout.fillWidth: true
-                implicitHeight: isSeparator ? VLCStyle.dp(9, VLCStyle.scale) : VLCStyle.dp(44, VLCStyle.scale)
+            Repeater {
+                model: root.model
 
-                Rectangle {
-                    visible: row.isSeparator
-                    anchors.verticalCenter: parent.verticalCenter
-                    x: VLCStyle.dp(12, VLCStyle.scale)
-                    width: parent.width - 2 * x
-                    height: VLCStyle.border
-                    color: root._c.separator
-                }
+                delegate: Item {
+                    id: row
 
-                T.AbstractButton {
-                    id: button
+                    required property int index
+                    required property var modelData
 
-                    anchors.fill: parent
-                    visible: !row.isSeparator
-                    enabled: row.modelData?.enabled !== false
-                    focusPolicy: Qt.StrongFocus
-                    hoverEnabled: true
+                    readonly property bool isSeparator: modelData?.separator === true
+                    readonly property bool hasSubmenu: !!modelData?.submenu
 
-                    onHoveredChanged: {
-                        if (hovered && row.hasSubmenu)
-                            submenuTimer.restart()
-                        else
-                            submenuTimer.stop()
+                    Layout.fillWidth: true
+                    implicitHeight: isSeparator ? VLCStyle.dp(9, VLCStyle.scale) : VLCStyle.dp(44, VLCStyle.scale)
+
+                    Rectangle {
+                        visible: row.isSeparator
+                        anchors.verticalCenter: parent.verticalCenter
+                        x: VLCStyle.dp(12, VLCStyle.scale)
+                        width: parent.width - 2 * x
+                        height: VLCStyle.border
+                        color: root._c.separator
                     }
 
-                    Timer {
-                        id: submenuTimer
-                        interval: 250
-                        onTriggered: root._openSubmenu(row.index, row)
-                    }
+                    T.AbstractButton {
+                        id: button
 
-                    onClicked: {
-                        if (row.hasSubmenu) {
-                            root._openSubmenu(row.index, row)
-                            return
+                        anchors.fill: parent
+                        visible: !row.isSeparator
+                        enabled: row.modelData?.enabled !== false
+                        focusPolicy: Qt.StrongFocus
+                        hoverEnabled: true
+
+                        onHoveredChanged: {
+                            if (hovered && row.hasSubmenu)
+                                submenuTimer.restart()
+                            else
+                                submenuTimer.stop()
                         }
-                        const action = row.modelData.action
-                        root.triggered(row.index)
-                        root.closeAll()
-                        if (typeof action === "function")
-                            action()
-                    }
 
-                    Keys.onRightPressed: { if (row.hasSubmenu) root._openSubmenu(row.index, row) }
-                    Keys.onLeftPressed: { if (root.parentMenu) root.close() }
+                        Timer {
+                            id: submenuTimer
+                            interval: 250
+                            onTriggered: root._openSubmenu(row.index, row)
+                        }
 
-                    background: Rectangle {
-                        radius: VLCStyle.dp(6, VLCStyle.scale)
-                        color: button.hovered || button.visualFocus || (row.hasSubmenu && root._submenuIndex === row.index && root._submenu?.visible)
-                               ? root._c.hover : "transparent"
-                    }
+                        onClicked: {
+                            if (row.hasSubmenu) {
+                                root._openSubmenu(row.index, row)
+                                return
+                            }
+                            const action = row.modelData.action
+                            root.triggered(row.index)
+                            root.closeAll()
+                            if (typeof action === "function")
+                                action()
+                        }
 
-                    contentItem: RowLayout {
-                        spacing: VLCStyle.dp(10, VLCStyle.scale)
+                        Keys.onRightPressed: { if (row.hasSubmenu) root._openSubmenu(row.index, row) }
+                        Keys.onLeftPressed: { if (root.parentMenu) root.close() }
 
-                        Item {
-                            Layout.leftMargin: VLCStyle.dp(10, VLCStyle.scale)
-                            implicitWidth: VLCStyle.dp(22, VLCStyle.scale)
-                            implicitHeight: implicitWidth
+                        background: Rectangle {
+                            radius: VLCStyle.dp(6, VLCStyle.scale)
+                            color: button.hovered || button.visualFocus || (row.hasSubmenu && root._submenuIndex === row.index && root._submenu?.visible)
+                                   ? root._c.hover : "transparent"
+                        }
+
+                        contentItem: RowLayout {
+                            spacing: VLCStyle.dp(10, VLCStyle.scale)
+
+                            Item {
+                                Layout.leftMargin: VLCStyle.dp(10, VLCStyle.scale)
+                                implicitWidth: VLCStyle.dp(22, VLCStyle.scale)
+                                implicitHeight: implicitWidth
+
+                                PanelIcon {
+                                    anchors.centerIn: parent
+                                    visible: !!row.modelData?.icon || row.modelData?.checked === true
+                                    name: row.modelData?.checked === true ? "check" : (row.modelData?.icon ?? "")
+                                    size: VLCStyle.dp(20, VLCStyle.scale)
+                                    color: row.modelData?.checked === true ? theme.accent
+                                                                          : (button.enabled ? root._c.label : root._c.faint)
+                                    accentColor: button.enabled ? theme.accent : root._c.faint
+                                }
+                            }
+
+                            Text {
+                                Layout.fillWidth: true
+                                text: row.modelData?.text ?? ""
+                                font.pixelSize: VLCStyle.dp(13.5, VLCStyle.scale)
+                                color: !button.enabled ? root._c.faint
+                                       : (button.hovered ? root._c.bright : root._c.text)
+                                elide: Text.ElideRight
+                            }
+
+                            Text {
+                                Layout.rightMargin: VLCStyle.dp(12, VLCStyle.scale)
+                                visible: !row.hasSubmenu && !!row.modelData?.shortcut
+                                text: row.modelData?.shortcut ?? ""
+                                font.pixelSize: VLCStyle.dp(12.5, VLCStyle.scale)
+                                color: root._c.dim
+                            }
 
                             PanelIcon {
-                                anchors.centerIn: parent
-                                visible: !!row.modelData?.icon || row.modelData?.checked === true
-                                name: row.modelData?.checked === true ? "check" : (row.modelData?.icon ?? "")
-                                size: VLCStyle.dp(20, VLCStyle.scale)
-                                color: row.modelData?.checked === true ? theme.accent
-                                                                      : (button.enabled ? root._c.label : root._c.faint)
-                                accentColor: button.enabled ? theme.accent : root._c.faint
+                                Layout.rightMargin: VLCStyle.dp(8, VLCStyle.scale)
+                                visible: row.hasSubmenu
+                                name: "chevron_right"
+                                size: VLCStyle.dp(18, VLCStyle.scale)
+                                color: root._c.label
                             }
-                        }
-
-                        Text {
-                            Layout.fillWidth: true
-                            text: row.modelData?.text ?? ""
-                            font.pixelSize: VLCStyle.dp(13.5, VLCStyle.scale)
-                            color: !button.enabled ? root._c.faint
-                                   : (button.hovered ? root._c.bright : root._c.text)
-                            elide: Text.ElideRight
-                        }
-
-                        Text {
-                            Layout.rightMargin: VLCStyle.dp(12, VLCStyle.scale)
-                            visible: !row.hasSubmenu && !!row.modelData?.shortcut
-                            text: row.modelData?.shortcut ?? ""
-                            font.pixelSize: VLCStyle.dp(12.5, VLCStyle.scale)
-                            color: root._c.dim
-                        }
-
-                        PanelIcon {
-                            Layout.rightMargin: VLCStyle.dp(8, VLCStyle.scale)
-                            visible: row.hasSubmenu
-                            name: "chevron_right"
-                            size: VLCStyle.dp(18, VLCStyle.scale)
-                            color: root._c.label
                         }
                     }
                 }

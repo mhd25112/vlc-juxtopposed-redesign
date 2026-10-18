@@ -322,7 +322,8 @@ T.Pane {
         }
 
         RowLayout {
-            visible: listView.count !== 0
+            // with the queue only (not under the bookmarks or the chapters)
+            visible: listView.count !== 0 && (!root.tabbed || root.tab === 0)
 
             Layout.fillHeight: false
             Layout.leftMargin: VLCStyle.margin_normal

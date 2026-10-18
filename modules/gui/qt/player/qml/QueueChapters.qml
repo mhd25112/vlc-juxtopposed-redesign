@@ -25,13 +25,8 @@ import VLC.Widgets as Widgets
 
 // "Chapters" tab of the queue panel: numbered chapters with their start
 // time, the current one in the accent color.
-ListView {
+Item {
     id: root
-
-    clip: true
-    boundsBehavior: Flickable.StopAtBounds
-    topMargin: VLCStyle.dp(8, VLCStyle.scale)
-    T.ScrollBar.vertical: Widgets.ScrollBarExt { }
 
     readonly property ColorContext colorContext: ColorContext {
         id: theme
@@ -40,15 +35,40 @@ ListView {
 
     readonly property var _c: PanelStyle.colors(theme.palette?.isDark ?? true)
 
+    Text {
+        anchors.centerIn: parent
+        width: parent.width - VLCStyle.dp(40, VLCStyle.scale)
+        z: 1
+        visible: list.count === 0
+        horizontalAlignment: Text.AlignHCenter
+        wrapMode: Text.WordWrap
+        text: qsTr("This media has no chapters.")
+        font.pixelSize: VLCStyle.dp(13, VLCStyle.scale)
+        color: root._c.dim
+    }
+
+  ListView {
+    id: list
+
+    anchors.fill: parent
+
+    clip: true
+    boundsBehavior: Flickable.StopAtBounds
+    topMargin: VLCStyle.dp(8, VLCStyle.scale)
+    T.ScrollBar.vertical: Widgets.ScrollBarExt { }
+
     model: Player.chapters
 
     delegate: T.AbstractButton {
         id: entry
 
         required property int index
-        required property string display
         required property var time
-        required property bool checked
+        // the "display" and "checked" roles (a button has its own, final,
+        // "display" and "checked")
+        required property var model
+        readonly property string name: model.display ?? ""
+        readonly property bool current: model.checked ?? false
 
         width: root.width
         implicitHeight: VLCStyle.dp(40, VLCStyle.scale)
@@ -76,10 +96,10 @@ ListView {
 
             Text {
                 Layout.fillWidth: true
-                text: entry.display !== "" ? entry.display : qsTr("Chapter %1").arg(entry.index + 1)
+                text: entry.name !== "" ? entry.name : qsTr("Chapter %1").arg(entry.index + 1)
                 elide: Text.ElideRight
                 font.pixelSize: VLCStyle.dp(13.5, VLCStyle.scale)
-                color: entry.checked ? theme.accent : root._c.text
+                color: entry.current ? theme.accent : root._c.text
             }
 
             Text {
@@ -90,17 +110,8 @@ ListView {
             }
         }
 
-        Accessible.name: display
+        Accessible.name: name
     }
 
-    Text {
-        anchors.centerIn: parent
-        width: parent.width - VLCStyle.dp(40, VLCStyle.scale)
-        visible: root.count === 0
-        horizontalAlignment: Text.AlignHCenter
-        wrapMode: Text.WordWrap
-        text: qsTr("This media has no chapters.")
-        font.pixelSize: VLCStyle.dp(13, VLCStyle.scale)
-        color: root._c.dim
-    }
+  }
 }

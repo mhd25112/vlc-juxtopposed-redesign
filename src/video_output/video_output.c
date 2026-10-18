@@ -1007,6 +1007,44 @@ static void ChangeFilters(vout_thread_sys_t *vout)
             }
         }
     }
+    else if (sys->display != NULL
+          && sys->display->source->i_chroma != p_fmt_current->video.i_chroma)
+    {
+        /* The display was switched to the chroma of filters that are gone
+         * (sepia, then no filter): switch it back to the pictures the chain
+         * gives now, else they would not be displayed any more */
+        int ret = VLC_EGENERIC;
+        picture_pool_t *new_private_pool =
+                picture_pool_NewFromFormat(&p_fmt_current->video,
+                                           FILTER_POOL_SIZE);
+        if (new_private_pool != NULL)
+        {
+            msg_Dbg(&vout->obj, "Changing vout format back to %4.4s",
+                                (const char *) &p_fmt_current->video.i_chroma);
+            ret = vout_SetDisplayFormat(sys->display, &p_fmt_current->video,
+                                        vctx_current);
+            if (ret == VLC_SUCCESS)
+            {
+                picture_pool_Release(sys->private_pool);
+                sys->private_pool = new_private_pool;
+            }
+            else
+                picture_pool_Release(new_private_pool);
+        }
+
+        if (ret != VLC_SUCCESS)
+        {
+            /* convert to what the display takes now */
+            es_format_t fmt_display;
+            es_format_InitFromVideo(&fmt_display, sys->display->source);
+            msg_Dbg(&vout->obj, "Adding a filter to convert to the display format %4.4s",
+                    (const char *) &fmt_display.video.i_chroma);
+            if (filter_chain_AppendConverter(sys->filter.chain_interactive,
+                                             &fmt_display) != VLC_SUCCESS)
+                msg_Err(&vout->obj, "Failed to convert to the display format");
+            es_format_Clean(&fmt_display);
+        }
+    }
 
     es_format_Clean(&fmt_target);
 

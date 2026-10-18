@@ -24,6 +24,7 @@ import VLC.Style
 import VLC.Widgets as Widgets
 
 import VLC.MainInterface
+import VLC.MediaLibrary
 import VLC.Dialogs
 import VLC.Util
 
@@ -284,6 +285,84 @@ T.Pane {
 
                     item.leftInset = Qt.binding(() => { return VLCStyle.margin_xxsmall + root.safeAreaLeftMargin })
                     item.rightInset = Qt.binding(() => { return VLCStyle.margin_xxsmall + root.safeAreaRightMargin })
+                }
+            }
+
+            // the pinned pages ("Pin to Sidebar" in the "..." menu of a page)
+            Repeater {
+                id: pinRepeater
+
+                model: {
+                    PlayerTweaks.revision
+                    try {
+                        return JSON.parse(String(PlayerTweaks.uiOption("sidebarPins", "[]")))
+                    } catch (e) {
+                        return []
+                    }
+                }
+
+                delegate: SideNavigationDelegate {
+                    id: pinDelegate
+
+                    required property var modelData
+                    required property int index
+
+                    readonly property string key: modelData.key ?? ""
+
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: VLCStyle.dp(46, VLCStyle.scale)
+
+                    leftPadding: root.safeAreaLeftMargin + VLCStyle.margin_xsmall
+                    rightPadding: root.safeAreaRightMargin
+
+                    iconName: modelData.icon ?? "pin"
+                    text: modelData.title ?? ""
+                    showText: root.delegateShowText
+                    focusPolicy: Qt.StrongFocus
+
+                    highlighted: {
+                        // through keys(): reading a missing key would add it
+                        const props = History.viewProp
+                        const keys = props ? props.keys() : []
+                        const url = keys.indexOf("url") >= 0 ? props.url : undefined
+                        const parentId = keys.indexOf("parentId") >= 0 ? props.parentId : undefined
+                        const here = History.viewPath.join("/") + "|"
+                                     + (url ? String(url) : (parentId ? parentId.toString() : ""))
+                        // the same page whether its address came encoded or not
+                        try {
+                            return decodeURIComponent(here) === decodeURIComponent(key)
+                        } catch (e) {
+                            return here === key
+                        }
+                    }
+
+                    onClicked: {
+                        const props = {}
+                        const saved = modelData.props ?? {}
+                        for (const k of Object.keys(saved)) {
+                            if (saved[k] && saved[k].mlid !== undefined)
+                                props[k] = MediaLib.deserializeMlItemIdFromString(saved[k].mlid)
+                            else
+                                props[k] = saved[k]
+                        }
+                        History.push(modelData.path, props, Qt.MouseFocusReason)
+                    }
+
+                    TapHandler {
+                        acceptedButtons: Qt.RightButton
+                        onTapped: pinMenu.popupNextTo(pinDelegate, true)
+                    }
+
+                    Widgets.PanelMenu {
+                        id: pinMenu
+                        menuWidth: VLCStyle.dp(220, VLCStyle.scale)
+                        model: [
+                            { text: qsTr("Unpin from Sidebar"), icon: "pin", action: () => {
+                                const pins = pinRepeater.model.filter((p) => (p.key ?? "") !== pinDelegate.key)
+                                PlayerTweaks.setUiOption("sidebarPins", JSON.stringify(pins))
+                            } }
+                        ]
+                    }
                 }
             }
 

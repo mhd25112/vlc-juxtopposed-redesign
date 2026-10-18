@@ -68,7 +68,7 @@ Widgets.PanelMenu {
             { text: qsTr("Next Item"), icon: "next", shortcut: _key("key-next"), action: () => MainPlaylistController.next() },
             { text: Player.recording ? qsTr("Stop Recording") : qsTr("Record"), icon: "record",
               shortcut: _key("key-record"), action: () => Player.toggleRecord() },
-            { text: qsTr("Hide UI"), icon: "eye_off", shortcut: "Ctrl + H", action: () => { MainCtx.minimalView = !MainCtx.minimalView } },
+            { text: qsTr("Hide UI"), icon: "eye_off", shortcut: "Ctrl + \\", action: () => { MainCtx.minimalView = !MainCtx.minimalView } },
             { separator: true },
             { text: qsTr("Playback"), icon: "playback", submenu: [
                 { text: qsTr("Speed"), icon: "speed", submenu: _speeds() },
@@ -124,7 +124,11 @@ Widgets.PanelMenu {
                 { text: qsTr("Open Folder"), icon: "folder", shortcut: "Ctrl + F", action: () => DialogsProvider.PLOpenDir() },
                 { text: qsTr("Open Network Stream"), icon: "link", shortcut: "Ctrl + N", action: () => PlayerTweaks.requestDialog("network") },
                 { text: qsTr("Open Disc"), icon: "disc", shortcut: "Ctrl + D", action: () => DialogsProvider.openDiscDialog() },
-                { text: qsTr("Open Capture Device"), icon: "capture", action: () => DialogsProvider.openCaptureDialog() } ] },
+                { text: qsTr("Open Capture Device"), icon: "capture", action: () => DialogsProvider.openCaptureDialog() },
+                { text: qsTr("Open from Clipboard"), icon: "clipboard", shortcut: "Ctrl + V", action: () => MainCtx.pasteFromClipboard() },
+                { separator: true },
+                { text: qsTr("Stream..."), icon: "stream", shortcut: "Ctrl + S", action: () => DialogsProvider.openAndStreamingDialogs() },
+                { text: qsTr("Convert..."), icon: "convert", shortcut: "Ctrl + R", action: () => DialogsProvider.openAndTranscodingDialogs() } ] },
             { separator: true },
             { text: qsTr("Quit VLC"), icon: "quit", shortcut: "Ctrl + Q", action: () => DialogsProvider.quit() }
         ]

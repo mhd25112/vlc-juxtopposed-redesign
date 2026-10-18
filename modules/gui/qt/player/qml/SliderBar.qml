@@ -631,9 +631,13 @@ T.ProgressBar {
 
             readonly property var cues: control._subtitleCues
             readonly property real length: Player.length.valid() ? Player.length.toSeconds() : 0
-            readonly property color color: control._panel.bright
+            readonly property color color: timelineMouse.pressed || timelineMouse.containsMouse ? theme.accent
+                                                                                                : control._panel.bright
+            // where the lines show: their time plus the subtitle delay
+            readonly property real delay: Player.subtitleDelayMS / 1000
 
             onCuesChanged: requestPaint()
+            onDelayChanged: requestPaint()
             onLengthChanged: requestPaint()
             onWidthChanged: requestPaint()
             onColorChanged: requestPaint()
@@ -645,9 +649,48 @@ T.ProgressBar {
                     return
                 ctx.fillStyle = color
                 for (let i = 0; i + 1 < cues.length; i += 2) {
-                    const x = cues[i] / length * width
+                    const x = (cues[i] + delay) / length * width
                     const w = Math.max(1, (cues[i + 1] - cues[i]) / length * width)
                     ctx.fillRect(x, 0, w, height)
+                }
+            }
+
+            // dragged sideways, the subtitles come earlier or later
+            MouseArea {
+                id: timelineMouse
+
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: -VLCStyle.dp(3, VLCStyle.scale)
+                height: VLCStyle.dp(9, VLCStyle.scale)
+
+                hoverEnabled: true
+                preventStealing: true
+                cursorShape: Qt.SizeHorCursor
+
+                property real _startX
+                property int _startDelay
+
+                onPressed: (mouse) => {
+                    _startX = mouse.x
+                    _startDelay = Player.subtitleDelayMS
+                }
+                onPositionChanged: (mouse) => {
+                    if (!pressed || subtitleTimeline.length <= 0 || width <= 0)
+                        return
+                    Player.subtitleDelayMS = Math.round(_startDelay
+                                                        + (mouse.x - _startX) / width * subtitleTimeline.length * 1000)
+                }
+                onDoubleClicked: Player.subtitleDelayMS = 0
+
+                T.ToolTip.visible: containsMouse || pressed
+                T.ToolTip.delay: pressed ? 0 : VLCStyle.delayToolTipAppear
+                T.ToolTip.text: {
+                    const d = Player.subtitleDelayMS / 1000
+                    const delayText = (d > 0 ? "+" : "") + d.toFixed(2) + " s"
+                    return pressed ? qsTr("Subtitle delay: %1").arg(delayText)
+                                   : qsTr("Drag to move the subtitles (delay %1), double click to reset").arg(delayText)
                 }
             }
         }

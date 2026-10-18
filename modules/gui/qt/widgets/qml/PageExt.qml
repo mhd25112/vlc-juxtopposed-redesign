@@ -182,7 +182,7 @@ T.Page {
                 if (name === undefined) {
                     // a page of its own (an album, a playlist, a folder): its title
                     if (i === path.length - 1)
-                        name = defaultPageHeader.text || History.viewProp.title || ""
+                        name = defaultPageHeader.text || (defaultPageHeader._viewProp("title") ?? "")
                     else
                         continue
                 }
@@ -196,6 +196,73 @@ T.Page {
         }
 
         property int _count: -1
+
+        // pinned pages: [{ title, icon, path, props }] (props: url as a string,
+        // parentId as { mlid })
+        readonly property var _pins: {
+            PlayerTweaks.revision
+            try {
+                return JSON.parse(String(PlayerTweaks.uiOption("sidebarPins", "[]")))
+            } catch (e) {
+                return []
+            }
+        }
+
+        // a property of the page shown, without adding it to History.viewProp
+        // (a QQmlPropertyMap creates the keys QML reads)
+        function _viewProp(name) {
+            const props = History.viewProp
+            return (props && props.keys().indexOf(name) >= 0) ? props[name] : undefined
+        }
+
+        function _serializedProps() {
+            const props = History.viewProp
+            const out = {}
+            for (const key of (props ? props.keys() : [])) {
+                const value = props[key]
+                if (value === undefined || value === null)
+                    continue
+                if (key === "parentId")
+                    out[key] = { mlid: value.toString() }
+                else if (key === "url" || key === "title" || key === "name")
+                    out[key] = String(value)
+            }
+            return out
+        }
+
+        // the same page whether its address came encoded or not
+        function _normalizedKey(key) {
+            try {
+                return decodeURIComponent(key)
+            } catch (e) {
+                return key
+            }
+        }
+
+        readonly property string _pinKey: {
+            const props = _serializedProps()
+            return _normalizedKey(History.viewPath.join("/") + "|" + (props.url ?? props.parentId?.mlid ?? ""))
+        }
+        readonly property bool _pinnable: History.viewPath.length >= 2
+                                          && (!!_viewProp("url") || !!_viewProp("parentId"))
+        readonly property bool _pinned: _pins.some((p) => _normalizedKey(p.key ?? "") === _pinKey)
+
+        function _pin() {
+            const crumbs = _crumbs
+            const icons = { "video": "folder", "music": "music", "playlists": "playlists", "network": "network" }
+            const pins = _pins.concat([{
+                key: _pinKey,
+                title: crumbs.length > 0 ? crumbs[crumbs.length - 1].text : defaultPageHeader.text,
+                icon: _viewProp("url") ? "folder" : (icons[History.viewPath[0]] ?? "pin"),
+                path: History.viewPath,
+                props: _serializedProps()
+            }])
+            PlayerTweaks.setUiOption("sidebarPins", JSON.stringify(pins))
+        }
+
+        function _unpin() {
+            PlayerTweaks.setUiOption("sidebarPins", JSON.stringify(_pins.filter((p) => _normalizedKey(p.key ?? "") !== _pinKey)))
+        }
 
         function _updateCount() {
             const model = root._firstChild?.model
@@ -461,6 +528,10 @@ T.Page {
                                : [{ text: qsTr("All Videos"), icon: "videos", action: () => History.push(["video", "all"]) }])
                             : []),
                         { text: qsTr("Rescan the Library"), icon: "rotate", action: () => MainCtx.mediaLibrary.reload() },
+                        defaultPageHeader._pinned
+                            ? { text: qsTr("Unpin from Sidebar"), icon: "pin", action: () => defaultPageHeader._unpin() }
+                            : { text: qsTr("Pin to Sidebar"), icon: "pin", enabled: defaultPageHeader._pinnable,
+                                action: () => defaultPageHeader._pin() },
                         { separator: true },
                         { text: qsTr("Library Settings"), icon: "preferences", action: () => PlayerTweaks.requestDialog("settings", "library") }
                     ]

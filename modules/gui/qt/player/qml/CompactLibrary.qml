@@ -691,6 +691,21 @@ FocusScope {
 
         onClicked: root.activate(entry)
 
+        // dragged to the queue (or anywhere taking files)
+        readonly property url dragUrl: (entry.kind === "media" || entry.kind === "folder")
+                                       ? (entry.url ?? entry.mrl ?? "") : ""
+
+        Drag.active: entryDrag.active
+        Drag.dragType: Drag.Automatic
+        Drag.supportedActions: Qt.CopyAction
+        Drag.mimeData: ({ "text/uri-list": String(line.dragUrl) })
+
+        DragHandler {
+            id: entryDrag
+            target: null
+            enabled: String(line.dragUrl) !== ""
+        }
+
         background: Rectangle {
             radius: VLCStyle.dp(6, VLCStyle.scale)
             color: line.hovered ? root._c.hover : "transparent"

@@ -38,7 +38,10 @@ Item {
     // shrinks with the window: the name is cut
     Layout.minimumWidth: _shown !== "" ? VLCStyle.dp(48, VLCStyle.scale) : 0
 
-    implicitWidth: _shown !== "" ? Math.min(row.implicitWidth + VLCStyle.dp(16, VLCStyle.scale), VLCStyle.dp(420, VLCStyle.scale)) : 0
+    // the icon and the whole name (not the row: its width comes from ours)
+    readonly property real _contentWidth: VLCStyle.dp(26, VLCStyle.scale) + label.implicitWidth
+
+    implicitWidth: _shown !== "" ? Math.min(_contentWidth + VLCStyle.dp(16, VLCStyle.scale), VLCStyle.dp(420, VLCStyle.scale)) : 0
     implicitHeight: VLCStyle.dp(30, VLCStyle.scale)
     visible: _shown !== ""
 
@@ -59,7 +62,7 @@ Item {
         id: row
 
         anchors.centerIn: parent
-        width: Math.min(implicitWidth, root.width - VLCStyle.dp(16, VLCStyle.scale))
+        width: Math.max(0, Math.min(root._contentWidth, root.width - VLCStyle.dp(16, VLCStyle.scale)))
         spacing: VLCStyle.dp(8, VLCStyle.scale)
 
             Widgets.PanelIcon {
@@ -70,8 +73,10 @@ Item {
             }
 
         Text {
+            id: label
+
             anchors.verticalCenter: parent.verticalCenter
-            width: Math.min(implicitWidth, row.width - (row.children.length > 1 ? VLCStyle.dp(26, VLCStyle.scale) : 0))
+            width: Math.max(0, Math.min(implicitWidth, row.width - VLCStyle.dp(26, VLCStyle.scale)))
             text: root._shown
             elide: Text.ElideRight
             font.pixelSize: VLCStyle.dp(13, VLCStyle.scale)

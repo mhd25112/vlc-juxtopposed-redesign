@@ -183,6 +183,35 @@ T.Pane {
                     font.pixelSize: VLCStyle.dp(24, VLCStyle.scale)
                 }
 
+                // add files, a folder or a stream to the queue
+                Widgets.SvgToolButton {
+                    id: queueAddButton
+
+                    iconName: "add"
+                    description: qsTr("Add to the Queue")
+                    checked: queueAddMenu.visible
+                    onClicked: queueAddMenu.popupNextTo(queueAddButton, false)
+
+                    Widgets.PanelMenu {
+                        id: queueAddMenu
+
+                        menuWidth: VLCStyle.dp(240, VLCStyle.scale)
+                        model: [
+                            { text: qsTr("Add Files..."), icon: "file", action: () => {
+                                const urls = PlayerTweaks.chooseFiles(qsTr("Add to the Queue"), "")
+                                if (urls.length > 0)
+                                    MainPlaylistController.insert(MainPlaylistController.count, urls, false)
+                            } },
+                            { text: qsTr("Add a Folder..."), icon: "folder", action: () => {
+                                const url = PlayerTweaks.chooseFolder(qsTr("Add to the Queue"))
+                                if (String(url) !== "")
+                                    MainPlaylistController.insert(MainPlaylistController.count, [url], false)
+                            } },
+                            { text: qsTr("Add a Network Stream..."), icon: "link", action: () => PlayerTweaks.requestDialog("network") }
+                        ]
+                    }
+                }
+
                 Widgets.SortControl {
                     id: sort
 

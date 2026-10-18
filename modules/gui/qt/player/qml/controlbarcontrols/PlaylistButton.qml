@@ -31,7 +31,10 @@ Widgets.SvgToolButton {
 
     onClicked: {
         MainCtx.playqueuePanel.visible = !MainCtx.playqueuePanel.visible
-        if (MainCtx.playqueuePanel.visible && MainCtx.playqueuePanel.docked) {
+        // the queue of the library takes the focus (the one of the player
+        // takes it as it opens)
+        if (MainCtx.playqueuePanel.visible && MainCtx.playqueuePanel.docked
+                && typeof playlistWidget !== "undefined") {
             playlistWidget.gainFocus(playlistBtn)
         }
     }

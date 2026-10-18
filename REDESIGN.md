@@ -18,7 +18,8 @@ test media.
 ## The library
 
 - A rounded navigation panel: Home, Videos, Music, Network, Playlists, Recent
-  and "Add item" (a folder, a network stream or a new playlist).
+  and "Add item" (a folder, a network stream or a new playlist). Any folder,
+  playlist or album can be pinned there ("..." > Pin to Sidebar).
 - **Home**: Continue Watching, Listen Again (title and artist), Frequently
   Visited Folders, then the newest videos and music.
 - **Videos are the folders on the disk**: *Videos › Shows › The Wand › S01*,
@@ -49,8 +50,10 @@ test media.
 ## The player
 
 - **Title bar**: the "..." menu (open media, recent files, profiles, keyboard
-  shortcuts, Customize Player, settings), the library, the folder of what plays,
-  its name in the middle, and fullscreen next to the window buttons. It is
+  shortcuts, Customize Player, settings), the library, the folder of what plays
+  (a click opens the library next to the video there), its name in the middle,
+  and fullscreen next to the window buttons. In fullscreen it comes back with
+  the control bar when the pointer goes near the top or the bottom. It is
   arranged in Customize Player like the control bar.
 - **Control bar**: one thin row with previous/play/next, the time as
   `00:02:10`, a thick flat seek bar, the volume cone, audio, subtitles,
@@ -66,15 +69,24 @@ test media.
   **Show Metadata**: the loudness of the audio along the seek bar, marks where
   the subtitle lines are (from a subtitle file or from the subtitle track inside
   the video), and the format, codecs and size of what plays over the video.
+  Drag the subtitle marks sideways to move the subtitles earlier or later
+  (double click to reset).
+- **Looks** in the Video tab: Vivid, Bright, Contrast, Muted, Black & White,
+  Sepia, Old Movie and VHS, each shown on the picture that plays; a click
+  applies the video filters, which can then be tuned below.
+- **Queue**: a card on the right like the settings, with Queue, Bookmarks and
+  Chapters tabs, and "+" to add files, a folder or a network stream. Ctrl+B
+  adds a bookmark where the video is, without a dialog.
 - **Library next to the video**: it slides over the video and opens on the
   folder of what plays (*... › The Wand › S01*), with a rail for Home, Videos
   (the folders again), Music (Songs as folders, Albums, Artists, Genres),
-  Network, Playlists and Recent.
+  Network, Playlists and Recent. Drag its files to the queue.
 - **Continue watching**: for a video left halfway, "You've watched till
   00:12:34 already." with a Continue Watching button, above the control bar.
-- The right-click menu of the video, a click on the video to pause and a double
-  click for fullscreen (both can be turned off in Settings), and *Hide UI*,
-  which keeps only the video in the window frame.
+- The right-click menu of the video (its Open Media part also has Open from
+  Clipboard, Stream and Convert), a click on the video to pause and a double
+  click for fullscreen (both can be turned off in Settings), and *Hide UI*
+  (`Ctrl+\`), which keeps only the video in the window frame.
 
 ![Player and settings sidebar](doc/redesign/player-sidebar.png)
 ![Waveform, subtitle timeline and metadata](doc/redesign/player-overlays.png)
@@ -144,6 +156,8 @@ colors that apply everywhere at once.
   brings it back).
 - OpenSubtitles is searched with its REST interface (opensubtitles.org),
   which needs no account but has a daily limit.
+- *Reverse* plays backwards only where VLC can (it is greyed out for media it
+  cannot play backwards, such as most MKV files).
 - Developed and tested on Windows only.
 
 ## Fixes found along the way
@@ -159,6 +173,9 @@ colors that apply everywhere at once.
 - A new video surface reported its position before it had a size, so the
   video showed for a moment at the corner of the window when switching
   between the player and the library (`modules/gui/qt/maininterface/videosurface.cpp`).
+- Turning off a video filter that had changed the format of the pictures
+  (Sepia, Old Movie... with hardware decoding) froze the picture: the display
+  kept the format of the filter (`src/video_output/video_output.c`).
 
 Also new outside the interface: on-screen messages caused by a keyboard
 shortcut show the key (`--osd-show-key`), and the FreeType text renderer

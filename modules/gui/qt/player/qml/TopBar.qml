@@ -69,7 +69,10 @@ FocusScope{
 
     property bool _showTopBar: (pinControls === false || showToolbar === false)
 
-    property bool _showCenterText: (pinControls && showToolbar === false && showCSD)
+    // the name of what plays, in the middle: with the window buttons, or in
+    // fullscreen (showTitle)
+    property bool showTitle: false
+    property bool _showCenterText: (pinControls && showToolbar === false && (showCSD || showTitle))
 
     readonly property int _sideMargin: VLCStyle.margin_small + sideMargin
 
@@ -99,6 +102,7 @@ FocusScope{
     Component.onCompleted: _layout()
 
     onShowCSDChanged: _layout()
+    onShowTitleChanged: _layout()
     onPinControlsChanged: _layout()
     onShowToolbarChanged: _layout()
     onTopMarginChanged: _layout()

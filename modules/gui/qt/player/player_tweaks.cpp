@@ -31,6 +31,7 @@
 #include <QFileDialog>
 #include <QKeyEvent>
 #include <QLocale>
+#include <QMap>
 #include <QSettings>
 #include <QtEndian>
 
@@ -474,6 +475,32 @@ void PlayerTweaks::setVideoFilter(const QString &name, bool enabled)
         return;
     }
 
+    changeVideoFilterChain(type, enabled ? QStringList{ name } : QStringList{},
+                           enabled ? QStringList{} : QStringList{ name });
+    scheduleSave();
+    touch();
+}
+
+void PlayerTweaks::setVideoFilters(const QStringList &enable, const QStringList &disable)
+{
+    // by kind of filter ("video-filter", "sub-source"...)
+    QMap<QByteArray, std::pair<QStringList, QStringList>> changes;
+    for (const QString &name : enable)
+        if (const char *type = videoFilterType(qtu(name)))
+            changes[type].first.append(name);
+    for (const QString &name : disable)
+        if (const char *type = videoFilterType(qtu(name)))
+            changes[type].second.append(name);
+
+    for (auto it = changes.cbegin(); it != changes.cend(); ++it)
+        changeVideoFilterChain(it.key().constData(), it.value().first, it.value().second);
+    scheduleSave();
+    touch();
+}
+
+void PlayerTweaks::changeVideoFilterChain(const char *type, const QStringList &enable,
+                                          const QStringList &disable)
+{
     QString current;
     if (SharedVOutThread vout = THEMIM->getVout())
     {
@@ -485,19 +512,22 @@ void PlayerTweaks::setVideoFilter(const QString &name, bool enabled)
         current = variantFromConfig(type).toString();
 
     QStringList chain = filterChain(current);
-    chain.removeAll(name);
-    if (enabled)
+    for (const QString &name : disable)
+        chain.removeAll(name);
+    for (const QString &name : enable)
+    {
+        chain.removeAll(name);
         chain.append(name);
+    }
     const QString result = chain.join(QLatin1Char(':'));
 
-    // Splitters can not change on the fly, they apply to the next video
-    if (strcmp(type, "video-splitter"))
+    // Splitters can not change on the fly, they apply to the next video; the
+    // chain is not rebuilt when it stays the same
+    if (strcmp(type, "video-splitter") && result != current)
         for (const SharedVOutThread &vout : THEMIM->getVouts())
             var_SetString(vout.get(), type, qtu(result));
 
     config_PutPsz(type, qtu(result));
-    scheduleSave();
-    touch();
 }
 
 QVariant PlayerTweaks::videoOption(const QString &name) const

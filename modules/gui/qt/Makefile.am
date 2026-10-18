@@ -1338,6 +1338,7 @@ libqml_module_player_a_QML = \
 	player/qml/SidebarAudio.qml \
 	player/qml/SidebarSubtitles.qml \
 	player/qml/VideoFilterGroup.qml \
+	player/qml/VideoLooks.qml \
 	player/qml/AudioFilterBlock.qml \
 	player/qml/TrackDefaultRows.qml \
 	player/qml/SubtitlePresetPicker.qml \

@@ -198,6 +198,11 @@ SidebarPage {
         Layout.fillWidth: true
         title: qsTr("Filters")
 
+        // ready-made looks, each shown on the picture
+        VideoLooks {
+            Layout.fillWidth: true
+        }
+
         Widgets.PanelRow {
             label: qsTr("Deinterlace")
 

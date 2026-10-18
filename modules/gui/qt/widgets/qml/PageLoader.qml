@@ -91,8 +91,13 @@ StackViewExt {
                     let pageProp = {
                         pagePrefix:[...pagePrefix, head]
                     }
-                    for (const key of properties.keys()) {
-                        pageProp[key] = properties[key]
+                    // the properties are for the page at the end of the
+                    // path, the pages on the way only pass them on
+                    if (path.length === 1) {
+                        for (const key of properties.keys()) {
+                            if (properties[key] !== undefined)
+                                pageProp[key] = properties[key]
+                        }
                     }
 
                     History.update([...pagePrefix, head])

@@ -76,6 +76,13 @@ FocusScope {
     Component.onCompleted: {
         MainCtx.preferHotkeys = true
         MainCtx.hasRedesignedPopupMenu = true
+        // the controls under the video stay: lock them from the start, as
+        // on_ControlsUnderVideoChanged unlocks them when going fullscreen
+        // (otherwise taking the lock of the queue or of the sidebar)
+        Qt.callLater(() => {
+            if (_controlsUnderVideo)
+                lockUnlockAutoHide(true)
+        })
     }
     Component.onDestruction: {
         MainCtx.preferHotkeys = false
@@ -1060,13 +1067,8 @@ FocusScope {
                  ? rootPlayer.width - playlistpopup.width
                  : rootPlayer.width
 
-        // NOTE: With pinned controls, the top controls are hidden when switching to
-        //       fullScreen. Except when resume is visible
-        visible: (MainCtx.pinVideoControls === false
-                  ||
-                  MainCtx.intfMainWindow.visibility !== Window.FullScreen
-                  ||
-                  resumeVisible)
+        // in fullscreen too, with the name of what plays: shown with the
+        // control bar when the pointer comes near the top or the bottom
 
         focus: true
         title: Player.title
@@ -1074,6 +1076,7 @@ FocusScope {
         pinControls: MainCtx.pinVideoControls
 
         showCSD: MainCtx.clientSideDecoration && (MainCtx.intfMainWindow.visibility !== Window.FullScreen)
+        showTitle: MainCtx.intfMainWindow.visibility === Window.FullScreen
         showToolbar: MainCtx.hasToolbarMenu && (MainCtx.intfMainWindow.visibility !== Window.FullScreen)
         playlistVisible: playlistVisibility.isPlaylistVisible
 
@@ -1152,66 +1155,37 @@ FocusScope {
     Loader {
         id: playlistpopup
 
+        // where the settings sidebar is: under the title bar, above the
+        // control bar, a little away from the edges
         anchors {
-            // NOTE: When the controls are pinned we display the playqueue under the topBar.
-            top: (rootPlayer._controlsUnderVideo) ? topBar.bottom
-                                                  : parent.top
-
+            top: rootPlayer._controlsUnderVideo ? topBar.bottom : parent.top
+            topMargin: rootPlayer._controlsUnderVideo ? VLCStyle.margin_xsmall : topBar.reservedHeight
             right: parent.right
+            rightMargin: VLCStyle.applicationHorizontalMargin + VLCStyle.margin_xsmall
             bottom: parent.bottom
-
-            bottomMargin: parent.height - rootPlayer.positionSliderY
+            bottomMargin: parent.height - controlBar.y + VLCStyle.margin_xsmall
         }
+
+        z: 1
 
         focus: false
 
         active: MainCtx.playqueuePanel.docked
 
-        //initial state value is "", using a binding avoid animation on startup
-        Binding on state {
-            when: playlistVisibility.started
-            value: (status === Loader.Ready && playlistVisibility.isPlaylistVisible) ? "expanded" : "retracted"
+        readonly property bool shown: status === Loader.Ready && playlistVisibility.isPlaylistVisible
+
+        // 0 to 1 as it slides in from the right, like the settings sidebar
+        property real reveal: shown ? 1 : 0
+        Behavior on reveal {
+            enabled: playlistVisibility.started
+            NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
         }
 
-        Component.onCompleted: {
-            Qt.callLater(() => { playlistTransition.enabled = true; })
-        }
+        visible: reveal > 0
+        opacity: reveal
+        transform: Translate { x: (1 - playlistpopup.reveal) * VLCStyle.dp(48, VLCStyle.scale) }
 
-        states: [
-            State {
-                name: "expanded"
-                PropertyChanges {
-                    target: playlistpopup
-                    width: playlistpopup.implicitWidth
-                    visible: true
-                }
-           }, State {
-                name: "retracted"
-                PropertyChanges {
-                    target: playlistpopup
-                    width: 0
-                    visible: false
-                }
-           }
-        ]
-
-        transitions: Transition {
-            id: playlistTransition
-            enabled: false
-
-            from: "retracted"; to: "expanded";
-            reversible: true
-
-            SequentialAnimation {
-                PropertyAction { property: "visible" }
-
-                NumberAnimation {
-                    property: "width"
-                    duration: VLCStyle.duration_short
-                    easing.type: Easing.InOutSine
-                }
-            }
-        }
+        width: implicitWidth
 
         sourceComponent: PlaylistPane {
             id: playlistView
@@ -1230,18 +1204,18 @@ FocusScope {
 
             wheelEnabled: true
 
-            rightPadding: VLCStyle.applicationHorizontalMargin
-            topPadding:  {
-                if (rootPlayer._controlsUnderVideo)
-                    return VLCStyle.margin_normal
-                else
-                    // NOTE: We increase the padding accordingly to avoid overlapping the TopBar.
-                    return topBar.reservedHeight
-            }
-            bottomPadding: 0
+            leftPadding: VLCStyle.border
+            rightPadding: VLCStyle.border
+            topPadding: VLCStyle.border
+            bottomPadding: VLCStyle.border
+
+            readonly property var _c: PanelStyle.colors(windowTheme.palette?.isDark ?? true)
 
             background: Rectangle {
-                color: windowTheme.bg.primary.alpha(0.8)
+                color: playlistView._c.field
+                radius: VLCStyle.dp(8, VLCStyle.scale)
+                border.width: VLCStyle.border
+                border.color: playlistView._c.separator
             }
 
             view.fadingEdge.pixelAlignedForDPR: !controlBar.visible

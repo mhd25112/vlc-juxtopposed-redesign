@@ -101,6 +101,10 @@ public:
     // Video filters ("transform", "adjust"...) and video output options
     Q_INVOKABLE bool videoFilter(const QString &name) const;
     Q_INVOKABLE void setVideoFilter(const QString &name, bool enabled);
+    // several filters at once, in one change of the chain (the looks): the
+    // chain is rebuilt once, without a mix of filters in between that would
+    // not work together
+    Q_INVOKABLE void setVideoFilters(const QStringList &enable, const QStringList &disable);
     Q_INVOKABLE QVariant videoOption(const QString &name) const;
     Q_INVOKABLE void setVideoOption(const QString &name, const QVariant &value);
     Q_INVOKABLE QVariantList videoChoices(const QString &name) const;
@@ -329,6 +333,7 @@ public:
     ~PlayerTweaks() override;
 
 private:
+    void changeVideoFilterChain(const char *type, const QStringList &enable, const QStringList &disable);
     void startWaveform(const QUrl &url);
     void startSeekPreview();
     void finishWaveform();

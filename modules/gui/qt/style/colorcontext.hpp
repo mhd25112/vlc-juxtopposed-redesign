@@ -197,8 +197,10 @@ protected:
     void classBegin() override;
     void componentComplete() override;
 
-private:
+private slots:
     void onParentChanged();
+
+private:
     void setParentContext(ColorContext* parentContext);
 
     void ensureExplicitState();

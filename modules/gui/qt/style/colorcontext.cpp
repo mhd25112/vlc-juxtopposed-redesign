@@ -86,9 +86,21 @@ void ColorContext::classBegin()
 
 void ColorContext::componentComplete()
 {
-    QQuickItem* contextParent = qobject_cast<QQuickItem*>(QObject::parent());
+    QObject* owner = QObject::parent();
+    QQuickItem* contextParent = qobject_cast<QQuickItem*>(owner);
     if (!contextParent)
+    {
+        // the context of a popup (a tool tip, a menu): popups are not items,
+        // the context inherits from the item the popup belongs to (without
+        // it, it had no palette and every color was magenta)
+        if (owner && owner->metaObject()->indexOfProperty("parent") >= 0
+            && owner->metaObject()->indexOfSignal("parentChanged()") >= 0)
+        {
+            connect(owner, SIGNAL(parentChanged()), this, SLOT(onParentChanged()));
+            onParentChanged();
+        }
         return;
+    }
 
     connect(contextParent, &QQuickItem::parentChanged, this, &ColorContext::onParentChanged);
 
@@ -116,13 +128,19 @@ void ColorContext::componentComplete()
 
 void ColorContext::onParentChanged()
 {
-    QQuickItem* contextParent = qobject_cast<QQuickItem*>(QObject::parent());
-    if (! contextParent)
+    QObject* owner = QObject::parent();
+    QQuickItem* start = nullptr;
+    if (QQuickItem* contextParent = qobject_cast<QQuickItem*>(owner))
+        //start looking on our parent's parent, our parent's ColorContext is self
+        start = contextParent->parentItem();
+    else if (owner)
+        // a popup: from the item it belongs to
+        start = owner->property("parent").value<QQuickItem*>();
+    else
         return;
 
     for (
-        //start looking on our parent's parent, our parent's ColorContext is self
-        QQuickItem* parent = contextParent->parentItem();
+        QQuickItem* parent = start;
         parent != nullptr;
         parent = parent->parentItem()
     )

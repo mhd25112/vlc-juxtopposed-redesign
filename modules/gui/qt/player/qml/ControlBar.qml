@@ -140,7 +140,7 @@ T.Pane {
             // Length might not be reported in some cases, for that reason we should check both and use the bigger one.
 
             // Some extra space to compensate non-monospaced fonts ("-" takes more space than ":", double "-" for guarantee)
-            if (trackPositionSlider.timelineMode)
+            if (trackPositionSlider.timelineZoomed)
                 return "00--00--00*" // the edges of the subtitle window
             return (!root.flatSlider && Player.time.isSubHour() && Player.length.isSubHour()) ? "00--00" : "00--00--00"
         }
@@ -191,7 +191,7 @@ T.Pane {
                 Layout.preferredWidth: (textPosition === ControlBar.TimeTextPosition.LeftRightSlider) ? timeTextMetrics.width : -1
 
                 text: {
-                    if (trackPositionSlider.timelineMode)
+                    if (trackPositionSlider.timelineZoomed)
                         return root._hmsSeconds(trackPositionSlider.timelineStart) + "*"
                     if (root.flatSlider)
                         return root._hms(Player.time)
@@ -221,7 +221,7 @@ T.Pane {
 
                 readonly property bool showRemainingTime: (MainCtx.showRemainingTime && Player.remainingTime.valid())
 
-                text: trackPositionSlider.timelineMode
+                text: trackPositionSlider.timelineZoomed
                       ? root._hmsSeconds(trackPositionSlider.timelineEnd) + "*"
                       : root.flatSlider
                       ? (showRemainingTime ? "-" + root._hms(Player.remainingTime) : root._hms(Player.length))

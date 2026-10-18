@@ -41,7 +41,7 @@ SidebarPage {
 
         Widgets.PanelRow {
             label: qsTr("Show Subtitle Timeline on Seekbar")
-            info: qsTr("Marks where the lines of the subtitles are on the seek bar")
+            info: qsTr("Shows the lines of the subtitles on the seek bar. Press and hold the seek bar, then drag, to move the subtitles earlier or later; right click to reset.")
 
             Widgets.PanelToggle {
                 checked: root.uiFlag("subtitleTimeline")

@@ -69,11 +69,13 @@ test media.
   **Show Metadata**: the loudness of the audio along the seek bar, marks where
   the subtitle lines are (from a subtitle file or from the subtitle track inside
   the video), and the format, codecs and size of what plays over the video.
-- **Subtitle timeline**: the seek bar becomes a window of a minute of the
-  subtitles, each line a block, the times on its sides showing where the
-  window starts and ends (*00:06:00\** to *00:07:00\**). Drag the blocks to
-  move the subtitles earlier or later, click to seek, ‹ › to move the window
-  and − + to zoom it; right click resets the delay.
+- **Subtitle timeline**: the subtitle lines as blocks along the seek bar.
+  Press and hold the bar, then drag, to move the subtitles earlier or later:
+  the bar zooms meanwhile on half a minute around what plays (the times on
+  its sides showing where that window starts and ends) and zooms back out
+  once released. It also zooms for a moment when the delay changes from the
+  sidebar or the keyboard. A click still seeks; right click resets the
+  delay.
 - **Looks** in the Video tab: Vivid, Bright, Contrast, Muted, Black & White,
   Sepia, Old Movie and VHS, each shown on the picture that plays; a click
   applies the video filters, which can then be tuned below.

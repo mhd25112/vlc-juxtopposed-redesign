@@ -61,13 +61,15 @@ T.ProgressBar {
                                           && PlayerTweaks.waveform.length > 0
                                           && !timelineMode
 
-    // the bar as a window of the subtitles (SubtitleTimeline), while
-    // "Show Subtitle Timeline on Seekbar" is on and the media has subtitles;
-    // the time labels then show where the window starts and ends
+    // the bar with the subtitle lines (SubtitleTimeline), while "Show
+    // Subtitle Timeline on Seekbar" is on and the media has subtitles; while
+    // it zooms to move them, the time labels show where the window starts
+    // and ends
     readonly property bool timelineMode: _showSubtitleTimeline && _subtitleCues.length > 1
                                          && Player.length.valid() && Player.length.toSeconds() > 0
-    readonly property real timelineStart: subtitleWindow.start
-    readonly property real timelineEnd: subtitleWindow.end
+    readonly property bool timelineZoomed: timelineMode && subtitleWindow.zoomed
+    readonly property real timelineStart: subtitleWindow.viewStart
+    readonly property real timelineEnd: subtitleWindow.viewEnd
 
 
     // "Show Subtitle Timeline on Seekbar": where the lines of the subtitles are
@@ -146,13 +148,13 @@ T.ProgressBar {
         onTriggered: control._isSeekPointsShown = false
     }
 
-    Widgets.PointingToolTipAttached.visible: !control.timelineMode
+    Widgets.PointingToolTipAttached.visible: !control.timelineZoomed
                                              && (hoverHandler.hovered || control.visualFocus || dragHandler.active)
                                              && !seekPreview.visible
 
     // videos: a picture of where the pointer is, over the bar
     readonly property bool _showPreview: flatStyle && Player.hasVideoOutput && Player.seekable && hoverHandler.hovered
-                                         && !timelineMode
+                                         && !timelineZoomed
 
     Timer {
         id: previewRequest

@@ -2688,5 +2688,9 @@ vlc_module_begin()
     set_subcategory(SUBCAT_ADVANCED_MISC)
     set_capability("medialibrary", 100)
     set_callbacks(Open, Close)
+    /* The media library keeps its logger (a Logger of this plugin) in a
+     * static shared_ptr, destroyed when the process exits: with this plugin
+     * unloaded by then, its destructor is gone and every exit crashed. */
+    cannot_unload_broken_library()
     add_bool( "ml-verbose", false, ML_VERBOSE, nullptr )
 vlc_module_end()

@@ -126,8 +126,11 @@ T.Pane {
             Widgets.ListViewExt {
                 id: listView
 
+                // the pages, then "Add item" right under them as in the design
                 Layout.fillWidth: true
-                Layout.fillHeight: true
+                Layout.fillHeight: false
+                Layout.preferredHeight: contentHeight
+                Layout.maximumHeight: contentItemId.height - addButton.height
 
                 clip: !fadingEdge.implicitClipping && (height < contentHeight)
                 focus: true
@@ -211,7 +214,9 @@ T.Pane {
 
                     visible: (height > 0.0)
 
-                    property bool shouldShow: showText || (iconTxt.length > 0)
+                    // the pages of the design: no sub pages, no "Discover"
+                    property bool shouldShow: (showText || (iconTxt.length > 0))
+                                              && depth === 0 && !(uri && uri[0] === "discover")
 
                     onShouldShowChanged: {
                         if (listView.readyForAnimations)
@@ -322,7 +327,7 @@ T.Pane {
                 Navigation.downItem: preferenceButton
             }
 
-            Item { Layout.fillHeight: true; Layout.maximumHeight: 0 }
+            Item { Layout.fillHeight: true }
 
             SideNavigationDelegate {
                 id: preferenceButton
@@ -340,6 +345,9 @@ T.Pane {
 
                 iconName: "preferences"
                 text: qsTr("Settings")
+
+                // in the "..." menu in the design
+                visible: false
 
                 checked: DialogsProvider.prefsDialogVisible
 

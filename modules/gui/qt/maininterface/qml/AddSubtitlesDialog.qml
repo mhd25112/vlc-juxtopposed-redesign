@@ -47,6 +47,104 @@ Widgets.PanelDialog {
     property var _matches: ({})
     property string _link: ""
 
+    // OpenSubtitles: the media searched for, the results, what is going on
+    property int _onlineIndex: 0
+    readonly property var _onlineMedia: _media[_onlineIndex] ?? null
+    property var _online: []
+    property string _onlineStatus: ""
+    property bool _onlineBusy: false
+    // media url -> the file downloaded for it
+    property var _downloaded: ({})
+    property string _downloadedLink: ""
+
+    readonly property var _languages: [
+        { code: "all", name: qsTr("All Languages") },
+        { code: "eng", name: "English" }, { code: "ara", name: "العربية" },
+        { code: "fre", name: "Français" }, { code: "spa", name: "Español" },
+        { code: "ger", name: "Deutsch" }, { code: "ita", name: "Italiano" },
+        { code: "por", name: "Português" }, { code: "pob", name: "Português (Brasil)" },
+        { code: "rus", name: "Русский" }, { code: "tur", name: "Türkçe" },
+        { code: "dut", name: "Nederlands" }, { code: "pol", name: "Polski" },
+        { code: "swe", name: "Svenska" }, { code: "gre", name: "Ελληνικά" },
+        { code: "heb", name: "עברית" }, { code: "per", name: "فارسی" },
+        { code: "hin", name: "हिन्दी" }, { code: "chi", name: "中文" },
+        { code: "jpn", name: "日本語" }, { code: "kor", name: "한국어" }
+    ]
+
+    // the language of the interface, or the one chosen the last time
+    property string _language: {
+        const saved = String(PlayerTweaks.uiOption("opensubLanguage", ""))
+        if (saved !== "")
+            return saved
+        const two = { "en": "eng", "ar": "ara", "fr": "fre", "es": "spa", "de": "ger", "it": "ita",
+                      "pt": "por", "ru": "rus", "tr": "tur", "nl": "dut", "pl": "pol", "sv": "swe",
+                      "el": "gre", "he": "heb", "fa": "per", "hi": "hin", "zh": "chi", "ja": "jpn", "ko": "kor" }
+        return two[Qt.locale().name.substring(0, 2)] ?? "eng"
+    }
+
+    // the same file, however its name is encoded
+    function _sameUrl(a, b) {
+        return decodeURIComponent(String(a)) === decodeURIComponent(String(b))
+    }
+
+    // "The_Wand_S01E04.mp4" -> "The Wand S01E04"
+    function _query(name) {
+        return name.replace(/\.[^.]*$/, "").replace(/[._]+/g, " ").trim()
+    }
+
+    function _searchOnline() {
+        const m = _onlineMedia
+        if (!m || onlineQuery.text.trim() === "")
+            return
+        _online = []
+        _onlineBusy = true
+        _onlineStatus = qsTr("Searching OpenSubtitles...")
+        PlayerTweaks.searchOnlineSubtitles(m.url, onlineQuery.text.trim(), _language)
+    }
+
+    on_OnlineMediaChanged: {
+        if (_onlineMedia)
+            onlineQuery.text = _query(_onlineMedia.name)
+        _online = []
+        _onlineStatus = ""
+        if (origin === 1)
+            Qt.callLater(_searchOnline)
+    }
+
+    onOriginChanged: {
+        if (origin === 1 && _online.length === 0 && !_onlineBusy)
+            Qt.callLater(_searchOnline)
+    }
+
+    Connections {
+        target: PlayerTweaks
+
+        function onOnlineSubtitlesReady(media, query, results, error) {
+            if (!root._onlineMedia || !root._sameUrl(media, root._onlineMedia.url))
+                return
+            root._onlineBusy = false
+            // made for this file first, then the most downloaded
+            root._online = results.slice().sort((a, b) => (b.exact - a.exact) || (b.downloads - a.downloads))
+            root._onlineStatus = error !== "" ? error
+                                              : (results.length === 0 ? qsTr("No subtitles found. Try another name or language.") : "")
+        }
+
+        function onOnlineSubtitleDownloaded(media, file, error) {
+            if (error !== "") {
+                root._onlineStatus = error
+                return
+            }
+            root._onlineStatus = ""
+            const downloaded = Object.assign({}, root._downloaded)
+            const key = root._media.find((m) => root._sameUrl(m.url, media))?.url ?? media
+            downloaded[String(key)] = String(file)
+            root._downloaded = downloaded
+            root._setMatch(key, file)
+            if (!root._subtitles.some((s) => String(s.url) === String(file)))
+                root._subtitles = root._subtitles.concat([{ name: root._name(file), url: file }])
+        }
+    }
+
     // the file to give subtitles to: given when opened from the library
     // (see RedesignDialogs), otherwise what plays
     property var argument: undefined
@@ -199,12 +297,36 @@ Widgets.PanelDialog {
                 color: root._c.text
             }
 
+            // OpenSubtitles: the name to search and the language
             Widgets.PanelSearchField {
-                id: onlineSearch
+                id: onlineQuery
 
                 Layout.fillWidth: true
+                Layout.leftMargin: VLCStyle.dp(20, VLCStyle.scale)
                 visible: root.origin === 1
-                text: Player.title
+                implicitHeight: VLCStyle.dp(34, VLCStyle.scale)
+                Keys.onReturnPressed: root._searchOnline()
+                Keys.onEnterPressed: root._searchOnline()
+            }
+
+            Widgets.PanelComboBox {
+                visible: root.origin === 1
+                implicitWidth: VLCStyle.dp(170, VLCStyle.scale)
+                model: root._languages.map((l) => l.name)
+                selectedIndex: Math.max(0, root._languages.findIndex((l) => l.code === root._language))
+                onActivated: (index) => {
+                    root._language = root._languages[index].code
+                    PlayerTweaks.setUiOption("opensubLanguage", root._language)
+                    root._searchOnline()
+                }
+            }
+
+            Widgets.PanelButton {
+                visible: root.origin === 1
+                text: qsTr("Search")
+                iconName: "search"
+                enabled: !root._onlineBusy
+                onClicked: root._searchOnline()
             }
 
             Widgets.PanelTextField {
@@ -225,39 +347,167 @@ Widgets.PanelDialog {
             }
         }
 
-        // OpenSubtitles: its search, then the downloaded files come from the computer
-        ColumnLayout {
+        // OpenSubtitles: the media on the left, the subtitles found for the
+        // one chosen on the right; a click downloads one next to the media
+        RowLayout {
             Layout.fillWidth: true
-            Layout.margins: VLCStyle.dp(24, VLCStyle.scale)
+            Layout.fillHeight: true
             visible: root.origin === 1
-            spacing: VLCStyle.dp(14, VLCStyle.scale)
+            spacing: 0
 
-            Text {
-                Layout.fillWidth: true
-                wrapMode: Text.WordWrap
-                text: qsTr("OpenSubtitles needs an account and a key of its own to be searched from VLC. Search it in your browser, then add the downloaded files from your computer: VLC matches them to the episodes.")
-                font.pixelSize: VLCStyle.dp(14, VLCStyle.scale)
-                color: root._c.label
+            ListView {
+                id: onlineMediaList
+
+                Layout.preferredWidth: parent.width / 2
+                Layout.fillHeight: true
+                Layout.topMargin: VLCStyle.dp(8, VLCStyle.scale)
+
+                clip: true
+                boundsBehavior: Flickable.StopAtBounds
+                T.ScrollBar.vertical: Widgets.ScrollBarExt { }
+
+                model: root._media
+
+                delegate: T.AbstractButton {
+                    id: mediaRow
+
+                    required property var modelData
+                    required property int index
+
+                    readonly property bool current: index === root._onlineIndex
+                    readonly property bool done: !!root._downloaded[String(modelData.url)]
+
+                    width: onlineMediaList.width
+                    implicitHeight: VLCStyle.dp(40, VLCStyle.scale)
+                    hoverEnabled: true
+                    onClicked: root._onlineIndex = index
+
+                    background: Rectangle {
+                        anchors.fill: parent
+                        anchors.leftMargin: VLCStyle.dp(14, VLCStyle.scale)
+                        anchors.rightMargin: VLCStyle.dp(8, VLCStyle.scale)
+                        radius: VLCStyle.dp(6, VLCStyle.scale)
+                        color: mediaRow.current ? PanelStyle.accentTint(theme.accent, theme.palette?.isDark ?? true)
+                                                : (mediaRow.hovered ? root._c.hover : "transparent")
+                        Behavior on color { ColorAnimation { duration: 120 } }
+                    }
+
+                    contentItem: RowLayout {
+                        spacing: VLCStyle.dp(12, VLCStyle.scale)
+
+                        Widgets.PanelIcon {
+                            Layout.leftMargin: VLCStyle.dp(26, VLCStyle.scale)
+                            name: mediaRow.done ? "check" : "video"
+                            size: VLCStyle.dp(18, VLCStyle.scale)
+                            color: mediaRow.done || mediaRow.current ? theme.accent : root._c.label
+                        }
+
+                        Text {
+                            Layout.fillWidth: true
+                            Layout.rightMargin: VLCStyle.dp(16, VLCStyle.scale)
+                            text: mediaRow.modelData.name
+                            elide: Text.ElideMiddle
+                            font.pixelSize: VLCStyle.dp(14, VLCStyle.scale)
+                            color: mediaRow.current ? root._c.bright : root._c.text
+                        }
+                    }
+                }
             }
 
-            RowLayout {
-                spacing: VLCStyle.dp(10, VLCStyle.scale)
+            Rectangle {
+                Layout.preferredWidth: VLCStyle.border
+                Layout.fillHeight: true
+                color: root._c.separator
+            }
 
-                Widgets.PanelButton {
-                    text: qsTr("Search on OpenSubtitles")
-                    accent: true
-                    iconName: "search"
-                    onClicked: Qt.openUrlExternally("https://www.opensubtitles.org/en/search2/moviename-"
-                                                    + encodeURIComponent(onlineSearch.text.trim()))
+            ListView {
+                id: onlineResults
+
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.topMargin: VLCStyle.dp(8, VLCStyle.scale)
+
+                clip: true
+                boundsBehavior: Flickable.StopAtBounds
+                T.ScrollBar.vertical: Widgets.ScrollBarExt { }
+
+                model: root._online
+
+                delegate: T.AbstractButton {
+                    id: resultRow
+
+                    required property var modelData
+
+                    readonly property bool chosen: String(root._matches[String(root._onlineMedia?.url ?? "")] ?? "") !== ""
+                                                   && root._downloadedLink === modelData.link
+
+                    width: onlineResults.width
+                    implicitHeight: VLCStyle.dp(54, VLCStyle.scale)
+                    hoverEnabled: true
+
+                    onClicked: {
+                        root._downloadedLink = modelData.link
+                        root._onlineStatus = qsTr("Downloading %1...").arg(modelData.name)
+                        PlayerTweaks.downloadOnlineSubtitle(root._onlineMedia.url, modelData.link,
+                                                            modelData.languageId, modelData.format)
+                    }
+
+                    background: Rectangle {
+                        anchors.fill: parent
+                        anchors.leftMargin: VLCStyle.dp(12, VLCStyle.scale)
+                        anchors.rightMargin: VLCStyle.dp(14, VLCStyle.scale)
+                        radius: VLCStyle.dp(6, VLCStyle.scale)
+                        color: resultRow.hovered ? root._c.hover : "transparent"
+                        Behavior on color { ColorAnimation { duration: 120 } }
+                    }
+
+                    contentItem: RowLayout {
+                        spacing: VLCStyle.dp(12, VLCStyle.scale)
+
+                        Widgets.PanelIcon {
+                            Layout.leftMargin: VLCStyle.dp(24, VLCStyle.scale)
+                            name: resultRow.chosen ? "check" : "subtitles"
+                            size: VLCStyle.dp(18, VLCStyle.scale)
+                            color: resultRow.chosen || resultRow.modelData.exact ? theme.accent : root._c.label
+                        }
+
+                        Column {
+                            Layout.fillWidth: true
+                            Layout.rightMargin: VLCStyle.dp(24, VLCStyle.scale)
+                            spacing: VLCStyle.dp(3, VLCStyle.scale)
+
+                            Text {
+                                width: parent.width
+                                text: resultRow.modelData.name
+                                elide: Text.ElideMiddle
+                                font.pixelSize: VLCStyle.dp(14, VLCStyle.scale)
+                                color: resultRow.hovered ? root._c.bright : root._c.text
+                            }
+
+                            Text {
+                                width: parent.width
+                                elide: Text.ElideRight
+                                text: [resultRow.modelData.exact ? qsTr("Made for this file") : "",
+                                       resultRow.modelData.language,
+                                       qsTr("%1 downloads").arg(resultRow.modelData.downloads.toLocaleString())]
+                                      .filter((t) => t !== "").join("  ·  ")
+                                font.pixelSize: VLCStyle.dp(12, VLCStyle.scale)
+                                color: resultRow.modelData.exact ? theme.accent : root._c.dim
+                            }
+                        }
+                    }
                 }
 
-                Widgets.PanelButton {
-                    text: qsTr("Add the Downloaded Files")
-                    iconName: "add"
-                    onClicked: {
-                        root.origin = 0
-                        root._addFiles()
-                    }
+                Text {
+                    anchors.centerIn: parent
+                    width: parent.width - VLCStyle.dp(60, VLCStyle.scale)
+                    visible: onlineResults.count === 0 || root._onlineBusy
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.WordWrap
+                    text: root._onlineStatus !== "" ? root._onlineStatus
+                                                    : (root._media.length === 0 ? qsTr("Play a video first.") : "")
+                    font.pixelSize: VLCStyle.dp(14, VLCStyle.scale)
+                    color: root._c.dim
                 }
             }
         }
@@ -346,7 +596,7 @@ Widgets.PanelDialog {
             }
         }
 
-        Item { Layout.fillHeight: true; visible: root.origin !== 0 }
+        Item { Layout.fillHeight: true; visible: root.origin === 2 }
 
         Rectangle {
             Layout.fillWidth: true
@@ -372,7 +622,7 @@ Widgets.PanelDialog {
                 text: qsTr("Save")
                 accent: true
                 implicitWidth: VLCStyle.dp(96, VLCStyle.scale)
-                enabled: root._media.length > 0 && (root.origin === 0 || (root.origin === 2 && root._link !== ""))
+                enabled: root._media.length > 0 && (root.origin !== 2 || root._link !== "")
                 onClicked: root.save()
             }
         }

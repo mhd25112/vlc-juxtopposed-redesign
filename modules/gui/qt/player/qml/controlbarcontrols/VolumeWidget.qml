@@ -128,6 +128,8 @@ T.Pane {
                 readonly property real level: volControl.position
                 readonly property real fullLevel: root._fullvolpos
                 readonly property real outlineWidth: Math.max(1, VLCStyle.dp(1.5, VLCStyle.scale))
+                // hovered or dragged: a lighter outline
+                readonly property bool hot: volControl.hovered || volControl.pressed
 
                 x: volControl.leftPadding
                 y: volControl.topPadding + (volControl.availableHeight - height) / 2
@@ -141,6 +143,7 @@ T.Pane {
                 scale: volControl.horizontal && volControl.mirrored ? -1 : 1
 
                 onLevelChanged: requestPaint()
+                onHotChanged: requestPaint()
                 onFullLevelChanged: requestPaint()
                 onWidthChanged: requestPaint()
                 onHeightChanged: requestPaint()
@@ -191,7 +194,7 @@ T.Pane {
                     // outline
                     _shape(ctx, w, h)
                     ctx.lineWidth = outlineWidth
-                    ctx.strokeStyle = Qt.rgba(0, 0, 0, 0.85)
+                    ctx.strokeStyle = hot ? Qt.rgba(1, 1, 1, 0.28) : Qt.rgba(0, 0, 0, 0.85)
                     ctx.stroke()
                 }
             }

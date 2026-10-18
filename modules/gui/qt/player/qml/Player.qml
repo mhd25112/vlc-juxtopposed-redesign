@@ -115,7 +115,8 @@ FocusScope {
                                          && MainCtx.intfMainWindow.visibility !== Window.FullScreen)
                                         ? VLCStyle.dp(10, VLCStyle.scale) : 0
 
-    property bool libraryVisible: false
+    // the library next to the video (title bar, "Folder Name", "Playlists")
+    readonly property bool libraryVisible: PlayerTweaks.libraryVisible
 
     // Functions
 
@@ -225,9 +226,10 @@ FocusScope {
 
         objectName: "playerSpecializationLoader"
 
-        // the video sits in the window frame, next to the compact library
+        // the video sits in the window frame; the compact library slides over
+        // it as in the design (the video keeps its size: nothing to redraw)
         anchors {
-            left: compactLibraryLoader.shown ? compactLibraryLoader.right : parent.left
+            left: parent.left
             right: parent.right
             top: (MainCtx.hasEmbededVideo && rootPlayer._controlsUnderVideo) ? topBar.bottom : parent.top
             bottom: (MainCtx.hasEmbededVideo && rootPlayer._controlsUnderVideo) ? controlBar.top : parent.bottom
@@ -1103,8 +1105,7 @@ FocusScope {
 
         onTogglePlaylistVisibility: playlistVisibility.togglePlaylistVisibility()
 
-        libraryVisible: rootPlayer.libraryVisible
-        onToggleLibrary: rootPlayer.libraryVisible = !rootPlayer.libraryVisible
+        editMode: PlayerTweaks.customizing
 
         onRequestLockUnlockAutoHide: (lock) => {
             rootPlayer.lockUnlockAutoHide(lock)
@@ -1340,16 +1341,33 @@ FocusScope {
 
         z: 1
         active: shown || status === Loader.Ready
-        visible: shown
-        width: shown && item ? item.implicitWidth : 0
 
-        sourceComponent: CompactLibrary {
-            focus: true
+        // 0 to 1 as it slides in from the left
+        property real reveal: shown ? 1 : 0
+        Behavior on reveal {
+            NumberAnimation { duration: 240; easing.type: Easing.OutCubic }
+        }
 
-            onFullLibraryRequested: (path) => {
-                rootPlayer.libraryVisible = false
-                MainCtx.playerView = false
-                History.push(path)
+        visible: reveal > 0
+        width: item ? item.implicitWidth : 0
+        transform: Translate { x: -(1 - compactLibraryLoader.reveal) * compactLibraryLoader.width }
+
+        sourceComponent: Item {
+            implicitWidth: compactLibrary.implicitWidth
+
+            CompactLibrary {
+                id: compactLibrary
+
+                anchors.right: parent.right
+                width: implicitWidth
+                height: parent.height
+                focus: true
+
+                onFullLibraryRequested: (path) => {
+                    PlayerTweaks.libraryVisible = false
+                    MainCtx.playerView = false
+                    History.push(path)
+                }
             }
         }
 
@@ -1459,12 +1477,18 @@ FocusScope {
 
         // keep the tab and the scroll position once opened
         active: shown || status === Loader.Ready
-        visible: shown && status === Loader.Ready
+
+        // 0 to 1 as it slides in from the right
+        property real reveal: shown ? 1 : 0
+        Behavior on reveal {
+            NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
+        }
+
+        visible: reveal > 0 && status === Loader.Ready
+        opacity: reveal
+        transform: Translate { x: (1 - sidebarLoader.reveal) * VLCStyle.dp(48, VLCStyle.scale) }
 
         width: item ? item.implicitWidth : 0
-
-        opacity: shown ? 1 : 0
-        Behavior on opacity { NumberAnimation { duration: VLCStyle.duration_short } }
 
         sourceComponent: PlayerSidebar {
             focus: true
@@ -1603,14 +1627,17 @@ FocusScope {
 
         rightPadding: VLCStyle.applicationHorizontalMargin
         leftPadding: VLCStyle.applicationHorizontalMargin
-        bottomPadding: VLCStyle.applicationVerticalMargin + VLCStyle.margin_xsmall
+        // its background behind the padding too
+        topInset: 0
+        topPadding: VLCStyle.dp(11, VLCStyle.scale)
+        bottomPadding: VLCStyle.applicationVerticalMargin + VLCStyle.dp(11, VLCStyle.scale)
 
         // A thick seek bar between the playback and the media controls, with
         // the time on its sides, keeps the controls a single thin row over the
         // video. Layouts with center controls get it on a line above them.
         sliderInline: true
         sliderAtBottom: false
-        sliderHeight: VLCStyle.dp(22, VLCStyle.scale)
+        sliderHeight: VLCStyle.dp(28, VLCStyle.scale)
         flatSlider: true
         editMode: PlayerTweaks.customizing
 
@@ -1710,6 +1737,7 @@ FocusScope {
 
         sourceComponent: CustomizePlayer {
             barModel: MainCtx.controlbarProfileModel.currentModel?.getModel(controlBar.identifier) ?? null
+            titleModel: MainCtx.controlbarProfileModel.currentModel?.getModel(PlayerControlbarModel.Titlebar) ?? null
         }
 
         onActiveChanged: {

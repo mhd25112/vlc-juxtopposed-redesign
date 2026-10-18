@@ -33,6 +33,10 @@ Item {
 
     required property PlayerControlbarModel barModel
 
+    // height of the groups, and what the empty middle one says
+    property real zoneHeight: VLCStyle.dp(44, VLCStyle.scale)
+    property string centerEmptyText: qsTr("Seek bar: drop controls here to put them in the middle")
+
     readonly property ColorContext colorContext: ColorContext {
         id: theme
         colorSet: ColorContext.Window
@@ -67,7 +71,7 @@ Item {
                                            : leftZone.x + leftZone.width + VLCStyle.dp(16, VLCStyle.scale)
         minimumWidth: (listModel && listModel.count > 0) ? VLCStyle.dp(48, VLCStyle.scale) : Math.max(0, space)
         listModel: root.barModel?.center ?? null
-        emptyText: qsTr("Seek bar: drop controls here to put them in the middle")
+        emptyText: root.centerEmptyText
     }
 
     // a group of controls of the bar
@@ -83,7 +87,7 @@ Item {
 
         implicitWidth: Math.max(minimumWidth, row.implicitWidth + 2 * VLCStyle.dp(6, VLCStyle.scale))
         width: implicitWidth
-        height: VLCStyle.dp(44, VLCStyle.scale)
+        height: root.zoneHeight
 
         function _indexAt(x) {
             const count = tiles.count
@@ -132,7 +136,7 @@ Item {
                     required property var model
 
                     width: Math.max(VLCStyle.dp(32, VLCStyle.scale), control.implicitWidth + VLCStyle.dp(8, VLCStyle.scale))
-                    height: VLCStyle.dp(36, VLCStyle.scale)
+                    height: root.zoneHeight - VLCStyle.dp(8, VLCStyle.scale)
                     opacity: dragSource.dragging ? 0.3 : 1
 
                     // the control, drawn only
@@ -180,7 +184,7 @@ Item {
             // after the last one
             Rectangle {
                 width: VLCStyle.dp(2, VLCStyle.scale)
-                height: VLCStyle.dp(36, VLCStyle.scale)
+                height: root.zoneHeight - VLCStyle.dp(8, VLCStyle.scale)
                 radius: width / 2
                 visible: zone._dropIndex >= 0 && zone._dropIndex === tiles.count
                 color: theme.accent

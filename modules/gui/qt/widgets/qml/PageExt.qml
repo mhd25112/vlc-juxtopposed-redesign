@@ -31,6 +31,12 @@ T.Page {
     //path of the current page loader
     property var pagePrefix: []
 
+    // the path of a page showing a folder of the disk, after the name of the
+    // section: [{ text, path, props }]
+    property var folderCrumbs: null
+    // items of the page that are not in its model (folders)
+    property int headerExtraCount: 0
+
     //note that T.Page introduce an intermediate Item, so to access our delegate,
     //we need to use contentChildren[0] rather than contentItem
     readonly property Item _firstChild: contentChildren[0] ?? null
@@ -165,9 +171,11 @@ T.Page {
             "mlsettings": qsTr("Folders")
         })
 
-        // [{ text, path }]
+        // [{ text, path, props }]
         readonly property var _crumbs: {
             const path = History.viewPath
+            if (root.folderCrumbs !== null && path.length > 0 && _names[path[0]] !== undefined)
+                return [{ text: _names[path[0]], path: [path[0]] }].concat(root.folderCrumbs)
             const crumbs = []
             for (let i = 0; i < path.length; ++i) {
                 let name = _names[path[i]]
@@ -303,7 +311,7 @@ T.Page {
                                 enabled: !last
                                 implicitWidth: crumbText.implicitWidth
                                 implicitHeight: crumbText.implicitHeight
-                                onClicked: History.push(modelData.path)
+                                onClicked: History.push(modelData.path, modelData.props ?? {})
 
                                 contentItem: Text {
                                     id: crumbText
@@ -323,8 +331,9 @@ T.Page {
 
             Text {
                 Layout.rightMargin: VLCStyle.dp(8, VLCStyle.scale)
+                readonly property int total: defaultPageHeader._count + root.headerExtraCount
                 visible: defaultPageHeader._count >= 0
-                text: defaultPageHeader._count === 1 ? qsTr("1 item") : qsTr("%1 items").arg(defaultPageHeader._count)
+                text: total === 1 ? qsTr("1 item") : qsTr("%1 items").arg(total)
                 font.pixelSize: VLCStyle.dp(13, VLCStyle.scale)
                 color: defaultPageHeader._c.label
             }
@@ -446,6 +455,11 @@ T.Page {
                     model: [
                         { text: MainCtx.gridView ? qsTr("Show as a List") : qsTr("Show as a Grid"), icon: MainCtx.gridView ? "list" : "grid",
                           enabled: MainCtx.hasGridListMode, action: () => { MainCtx.gridView = !MainCtx.gridView } },
+                        ...(History.viewPath[0] === "video"
+                            ? (History.viewPath[1] === "all"
+                               ? [{ text: qsTr("Show Folders"), icon: "folder", action: () => History.push(["video", "folder"]) }]
+                               : [{ text: qsTr("All Videos"), icon: "videos", action: () => History.push(["video", "all"]) }])
+                            : []),
                         { text: qsTr("Rescan the Library"), icon: "rotate", action: () => MainCtx.mediaLibrary.reload() },
                         { separator: true },
                         { text: qsTr("Library Settings"), icon: "preferences", action: () => PlayerTweaks.requestDialog("settings", "library") }

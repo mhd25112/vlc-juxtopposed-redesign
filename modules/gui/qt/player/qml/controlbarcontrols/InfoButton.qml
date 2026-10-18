@@ -24,11 +24,11 @@ import VLC.Player
 import VLC.Dialogs
 import VLC.Util
 
-Widgets.IconToolButton {
+Widgets.SvgToolButton {
     id: infoBtn
 
     enabled: Player.isStarted
-    text: VLCIcons.info
+    iconName: "info"
     onClicked: DialogsProvider.mediaInfoDialog()
     description: qsTr("Information")
 

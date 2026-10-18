@@ -43,9 +43,15 @@ Widgets.PageLoader {
     // Settings
     //---------------------------------------------------------------------------------------------
 
+    // the folders on the disk first, as in the design; all the videos and
+    // the video playlists from the "..." menu of the header
     pageModel: [{
-            name: "all",
+            name: "folder",
             default: true,
+            displayText: qsTr("Folders"),
+            url: "qrc:///qt/qml/VLC/MediaLibrary/VideoFolderDisplay.qml"
+        },{
+            name: "all",
             displayText: qsTr("All"),
             url: "qrc:///qt/qml/VLC/MediaLibrary/VideoAllDisplay.qml"
         },{

@@ -39,9 +39,11 @@ T.Popup {
     // where it was asked to open; kept inside the window as its size
     // becomes known (the rows are laid out after the model is set)
     property point _requested
+    // above the point (opened from the control bar)
+    property bool _above: false
 
     x: Math.max(0, Math.min(_requested.x, (parent?.width ?? 0) - width))
-    y: Math.max(0, Math.min(_requested.y, (parent?.height ?? 0) - height))
+    y: Math.max(0, Math.min(_above ? _requested.y - height : _requested.y, (parent?.height ?? 0) - height))
 
     // closed by the press of the click that would open it again at the same
     // place: the button it opens from was clicked to close it
@@ -57,8 +59,29 @@ T.Popup {
         const p = parent.mapFromGlobal(globalPoint.x, globalPoint.y)
         if (_isToggle(p))
             return
+        _above = false
         _requested = p
         open()
+    }
+
+    // opens above an item
+    function popupAbove(item) {
+        const m = item.mapToItem(parent, 0, -VLCStyle.dp(4, VLCStyle.scale))
+        const p = Qt.point(m.x, m.y)
+        if (_isToggle(p))
+            return
+        _above = true
+        _requested = p
+        open()
+    }
+
+    // opens below an item, or above it in the lower half of the window
+    function popupFrom(item) {
+        const m = item.mapToItem(parent, 0, 0)
+        if (m.y > parent.height / 2)
+            popupAbove(item)
+        else
+            popupNextTo(item, false)
     }
 
     // opens next to an item, below it or on its right for a submenu
@@ -67,6 +90,7 @@ T.Popup {
         const p = Qt.point(m.x, m.y - (onRight ? topPadding : 0))
         if (!onRight && _isToggle(p))
             return
+        _above = false
         _requested = p
         open()
     }

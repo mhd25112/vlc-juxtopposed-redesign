@@ -23,11 +23,11 @@ import VLC.Style
 import VLC.Player
 import VLC.Util
 
-Widgets.IconToolButton {
+Widgets.SvgToolButton {
     id: snapshotBtn
 
     enabled: Player.isStarted
-    text: VLCIcons.snapshot
+    iconName: "snapshot"
     onClicked: Player.snapshot()
     description: qsTr("Snapshot")
 

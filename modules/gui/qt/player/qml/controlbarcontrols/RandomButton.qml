@@ -23,11 +23,11 @@ import VLC.Style
 import VLC.Playlist
 import VLC.Util
 
-Widgets.IconToolButton {
+Widgets.SvgToolButton {
     id: randomBtn
 
     checked: MainPlaylistController.random
-    text: VLCIcons.shuffle
+    iconName: "shuffle"
     onClicked: MainPlaylistController.toggleRandom()
     description: qsTr("Random")
 

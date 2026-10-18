@@ -24,10 +24,10 @@ import VLC.Style
 import VLC.Util
 
 
-Widgets.IconToolButton {
+Widgets.SvgToolButton {
     id: quitBtn
 
-    text: VLCIcons.clear
+    iconName: "quit"
     onClicked: MainCtx.close()
     description: qsTr("Quit")
 

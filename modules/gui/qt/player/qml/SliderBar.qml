@@ -74,11 +74,19 @@ T.ProgressBar {
 
     on_ShowSubtitleTimelineChanged: _loadSubtitleCues()
 
-    // a subtitle file added
+    // a subtitle file added, another track chosen
     Connections {
         target: Player.subtitleTracks
         enabled: control._showSubtitleTimeline
         function onCountChanged() { control._loadSubtitleCues() }
+        function onDataChanged() { control._loadSubtitleCues() }
+    }
+
+    // the subtitles inside the media, once read
+    Connections {
+        target: PlayerTweaks
+        enabled: control._showSubtitleTimeline
+        function onSubtitleCuesChanged() { control._loadSubtitleCues() }
     }
 
     // asked when the media, its picture or the setting changes (directly: QML

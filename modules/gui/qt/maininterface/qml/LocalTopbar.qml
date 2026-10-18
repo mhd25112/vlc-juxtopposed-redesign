@@ -134,8 +134,11 @@ T.ToolBar {
                     Navigation.rightItem: navigationVisibilty
                 }
 
+                // the design keeps the navigation panel
                 Widgets.SvgToolButton {
                     id: navigationVisibilty
+
+                    visible: false
 
                     iconName: checked ? "sidebar_open" : "sidebar"
                     description: qsTr("Show navigation menu")
@@ -201,14 +204,6 @@ T.ToolBar {
                     onClicked: root.togglePlayqueueVisibility()
                 }
 
-                Widgets.SvgToolButton {
-                    iconName: "fullscreen"
-                    description: qsTr("Fullscreen")
-                    width: VLCStyle.dp(36, VLCStyle.scale)
-                    height: VLCStyle.dp(34, VLCStyle.scale)
-                    visible: root._showCSD
-                    onClicked: MainCtx.toggleInterfaceFullScreen()
-                }
             }
         }
 
@@ -238,5 +233,28 @@ T.ToolBar {
         source: VLCStyle.palette.hasCSDImage
                   ? "qrc:///qt/qml/VLC/Widgets/CSDThemeButtonSet.qml"
                   : "qrc:///qt/qml/VLC/Widgets/CSDWindowButtonSet.qml"
+
+        // fullscreen, between maximize and close as in the design
+        onLoaded: {
+            if ("beforeClose" in item)
+                item.beforeClose = fullscreenComponent
+        }
+    }
+
+    Component {
+        id: fullscreenComponent
+
+        Item {
+            implicitWidth: VLCStyle.dp(36, VLCStyle.scale)
+
+            Widgets.SvgToolButton {
+                anchors.centerIn: parent
+                iconName: "fullscreen"
+                description: qsTr("Fullscreen")
+                width: VLCStyle.dp(36, VLCStyle.scale)
+                height: VLCStyle.dp(34, VLCStyle.scale)
+                onClicked: MainCtx.toggleInterfaceFullScreen()
+            }
+        }
     }
 }

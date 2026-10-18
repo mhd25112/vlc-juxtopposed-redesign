@@ -233,8 +233,8 @@ T.Control {
     background: Item {
         readonly property real cornerRadius: VLCStyle.dp(6, VLCStyle.scale)
 
-        implicitWidth: Math.round(height * 1.75)
-        implicitHeight: VLCStyle.icon_audioPlayerButton
+        implicitWidth: VLCStyle.dp(54, VLCStyle.scale)
+        implicitHeight: VLCStyle.dp(28, VLCStyle.scale)
 
         Widgets.AnimatedBackground {
             anchors.fill: parent
@@ -253,10 +253,11 @@ T.Control {
 
             radius: parent.cornerRadius
 
-            gradient: Gradient {
-                GradientStop { position: 0.0; color: "#e25b01" }
-                GradientStop { position: 1.0; color: "#f89a06" }
-            }
+            // the accent, lighter when hovered, darker when pressed
+            color: mouseArea.containsPress ? Qt.darker(theme.accent, 1.15)
+                             : (root.cursorInside ? Qt.lighter(theme.accent, 1.12) : theme.accent)
+
+            Behavior on color { ColorAnimation { duration: 120 } }
 
             Widgets.RoundedRectangleShadow {
                 id: hoverShadow

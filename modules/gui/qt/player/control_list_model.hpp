@@ -106,6 +106,32 @@ public:
 
         WIDGET_SPACER = 0x40,
         WIDGET_SPACER_EXTEND,
+
+        // the redesign: the items of "Customize Player" and of its title bar
+        DIVIDER_WIDGET,
+        FORWARD_10_BUTTON,
+        BACKWARD_10_BUTTON,
+        FORWARD_15_BUTTON,
+        BACKWARD_15_BUTTON,
+        PIP_BUTTON,
+        HDR_BUTTON,
+        ZOOM_BUTTON,
+        SIDEBAR_BUTTON,
+        SETTINGS_BUTTON,
+        HOME_BUTTON,
+        THUMBNAIL_WIDGET,
+        FILE_NAME_WIDGET,
+        ARTIST_NAME_WIDGET,
+        FOLDER_NAME_WIDGET,
+        PLAYLIST_NAME_WIDGET,
+        REPLAY_BUTTON,
+        CHAPTERS_BUTTON,
+        FAVORITE_BUTTON,
+        ADD_BOOKMARK_BUTTON,
+        PLAYLISTS_BUTTON,
+        APP_MENU_BUTTON,
+        LIBRARY_BUTTON,
+
         WIDGET_MAX,
     };
     Q_ENUM(ControlType)
@@ -113,6 +139,7 @@ public:
     static_assert(RESERVED_0X1F == 0x1F, "missaligned");
     static_assert(SUBTITLE_BUTTON == 0x2B, "missaligned");
     static_assert(RESERVED_0X3F == 0x3F, "missaligned");
+    static_assert(DIVIDER_WIDGET == 0x42, "missaligned");
 
     // Basic functionality:
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;

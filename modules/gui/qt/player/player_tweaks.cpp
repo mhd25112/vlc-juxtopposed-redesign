@@ -266,6 +266,7 @@ PlayerTweaks::PlayerTweaks(qt_intf_t *intf, QObject *parent)
 
     connect(THEMIM, &PlayerController::playbackRestoreQueried, this, &PlayerTweaks::updateResumeTime);
     connect(THEMIM, &PlayerController::inputChanged, this, &PlayerTweaks::loadRememberedSubtitle);
+    connect(THEMIM, &PlayerController::inputChanged, this, &PlayerTweaks::updateCurrentMedia);
 
     RendererManager *renderers = THEMIM->getRendererManager();
     connect(renderers, &QAbstractItemModel::rowsInserted, this, &PlayerTweaks::touch);
@@ -1385,6 +1386,7 @@ void PlayerTweaks::locateFolder(const QUrl &url, bool isFolder)
     struct Ctx {
         int64_t id = 0;
         QString title;
+        bool hasVideo = false;
     };
     const QUrl folder = isFolder ? url.adjusted(QUrl::StripTrailingSlash)
                                  : url.adjusted(QUrl::RemoveFilename | QUrl::StripTrailingSlash);
@@ -1404,19 +1406,24 @@ void PlayerTweaks::locateFolder(const QUrl &url, bool isFolder)
             {
                 ctx.id = f.i_id;
                 ctx.title = qfu(f.psz_name);
+                ctx.hasVideo = f.i_nb_video > 0;
                 break;
             }
         }
         vlc_ml_folder_list_release(list);
     },
-    [this](quint64, Ctx& ctx) {
+    [this, folder](quint64, Ctx& ctx) {
         if (ctx.id > 0)
-            emit folderLocated(QVariant::fromValue(MLItemId(ctx.id, VLC_ML_PARENT_FOLDER)), ctx.title);
+            emit folderLocated(QVariant::fromValue(MLItemId(ctx.id, VLC_ML_PARENT_FOLDER)), ctx.title,
+                               folder, ctx.hasVideo);
     });
 }
 
 PlayerTweaks::~PlayerTweaks()
 {
+    stopEmbeddedCues();
+    stopOnline();
+
     if (m_previewParser)
         vlc_preparser_Delete(m_previewParser);
     for (const QString &file : std::as_const(m_previewFiles))
@@ -1782,7 +1789,7 @@ double parseCueTime(const QString &text)
 
 }
 
-QVariantList PlayerTweaks::subtitleCues(const QUrl &media) const
+QVariantList PlayerTweaks::subtitleCues(const QUrl &media)
 {
     QVariantList cues;
     if (!media.isLocalFile())
@@ -1806,8 +1813,9 @@ QVariantList PlayerTweaks::subtitleCues(const QUrl &media) const
             }
         }
     }
+    // none: the subtitles inside the media
     if (path.isEmpty())
-        return cues;
+        return embeddedSubtitleCues(media);
 
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text) || file.size() > 16 * 1024 * 1024)
@@ -1916,4 +1924,122 @@ QVariantMap PlayerTweaks::mediaDetails() const
         details.insert(QStringLiteral("audio"), parts.join(QStringLiteral(" · ")));
     }
     return details;
+}
+
+/* Controls of "Customize Player" */
+
+void PlayerTweaks::seekBy(int seconds)
+{
+    vlc_player_t *player = p_intf->p_player;
+    vlc_player_locker lock{ player };
+    if (vlc_player_IsStarted(player))
+        vlc_player_JumpTime(player, vlc_tick_from_sec(seconds));
+}
+
+void PlayerTweaks::replay()
+{
+    vlc_player_t *player = p_intf->p_player;
+    vlc_player_locker lock{ player };
+    if (!vlc_player_GetCurrentMedia(player))
+        return;
+    if (vlc_player_IsStarted(player))
+        vlc_player_SetTime(player, VLC_TICK_0);
+    else
+        vlc_player_Start(player);
+}
+
+void PlayerTweaks::updateCurrentMedia()
+{
+    if (!p_intf->p_mi || !p_intf->p_mi->getMediaLibrary())
+        return;
+
+    QString mrl;
+    QStringList queue;
+    {
+        vlc_player_t *player = p_intf->p_player;
+        vlc_player_locker lock{ player };
+        if (input_item_t *item = vlc_player_GetCurrentMedia(player))
+        {
+            char *uri = input_item_GetURI(item);
+            mrl = qfu(uri);
+            free(uri);
+        }
+    }
+    {
+        vlc_playlist_t *playlist = p_intf->p_playlist;
+        vlc_playlist_Lock(playlist);
+        const size_t count = vlc_playlist_Count(playlist);
+        for (size_t i = 0; i < count && i < 2000; ++i)
+        {
+            input_item_t *item = vlc_playlist_item_GetMedia(vlc_playlist_Get(playlist, i));
+            char *uri = input_item_GetURI(item);
+            queue.append(qfu(uri));
+            free(uri);
+        }
+        vlc_playlist_Unlock(playlist);
+    }
+
+    struct Ctx {
+        qint64 id = -1;
+        bool favorite = false;
+        QString playlist;
+    };
+    p_intf->p_mi->getMediaLibrary()->runOnMLThread<Ctx>(this,
+    [mrl, queue](vlc_medialibrary_t* ml, Ctx& ctx) {
+        if (mrl.isEmpty())
+            return;
+        if (vlc_ml_media_t *media = vlc_ml_get_media_by_mrl(ml, qtu(mrl)))
+        {
+            ctx.id = media->i_id;
+            ctx.favorite = media->b_is_favorite;
+            vlc_ml_media_release(media);
+        }
+        if (queue.size() < 2)
+            return;
+
+        // the playlist of the library with the same media as the queue
+        vlc_ml_playlist_list_t *playlists = vlc_ml_list_playlists(ml, nullptr, VLC_ML_PLAYLIST_TYPE_ALL);
+        if (!playlists)
+            return;
+        for (size_t i = 0; i < playlists->i_nb_items && ctx.playlist.isEmpty(); ++i)
+        {
+            const vlc_ml_playlist_t &playlist = playlists->p_items[i];
+            if (playlist.i_nb_media != static_cast<unsigned>(queue.size()))
+                continue;
+            vlc_ml_media_list_t *media = vlc_ml_list_playlist_media(ml, nullptr, playlist.i_id);
+            if (!media)
+                continue;
+            bool same = media->i_nb_items == static_cast<size_t>(queue.size());
+            for (size_t j = 0; same && j < media->i_nb_items; ++j)
+            {
+                const vlc_ml_media_t &m = media->p_items[j];
+                const char *file = (m.p_files && m.p_files->i_nb_items > 0) ? m.p_files->p_items[0].psz_mrl : nullptr;
+                same = file && qfu(file) == queue[j];
+            }
+            vlc_ml_media_list_release(media);
+            if (same)
+                ctx.playlist = qfu(playlist.psz_name);
+        }
+        vlc_ml_playlist_list_release(playlists);
+    },
+    [this](quint64, Ctx& ctx) {
+        m_currentMediaId = ctx.id;
+        m_favorite = ctx.favorite;
+        m_playlistName = ctx.playlist;
+        emit currentMediaChanged();
+    });
+}
+
+void PlayerTweaks::toggleFavorite()
+{
+    if (m_currentMediaId < 0 || !p_intf->p_mi || !p_intf->p_mi->getMediaLibrary())
+        return;
+    const qint64 id = m_currentMediaId;
+    const bool favorite = !m_favorite;
+    m_favorite = favorite;
+    emit currentMediaChanged();
+    p_intf->p_mi->getMediaLibrary()->runOnMLThread(this,
+    [id, favorite](vlc_medialibrary_t* ml) {
+        vlc_ml_media_set_favorite(ml, id, favorite);
+    });
 }

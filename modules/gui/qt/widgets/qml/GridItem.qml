@@ -62,6 +62,8 @@ T.ItemDelegate {
     property bool dimmed: false
 
     property alias title: titleLabel.text
+    // the title in the accent (what plays)
+    property bool accentTitle: false
     property alias subtitle: subtitleTxt.text
     property alias subtitleVisible: subtitleTxt.visible
     property alias playCoverShowPlay: picture.playCoverShowPlay
@@ -365,10 +367,15 @@ T.ItemDelegate {
                 font.pixelSize: VLCStyle.dp(15, VLCStyle.scale)
                 font.weight: Font.Normal
 
-                color: root.selected
-                    ? theme.fg.highlight
-                    : (root.dimmed ? PanelStyle.colors((theme.palette?.isDark ?? true)).dim
-                                   : PanelStyle.colors((theme.palette?.isDark ?? true)).text)
+                // what plays in the accent, the hovered one lit
+                color: root.accentTitle
+                    ? theme.accent
+                    : (root.selected
+                       ? theme.fg.highlight
+                       : (root.hovered ? PanelStyle.colors((theme.palette?.isDark ?? true)).bright
+                                       : (root.dimmed ? PanelStyle.colors((theme.palette?.isDark ?? true)).dim
+                                                      : PanelStyle.colors((theme.palette?.isDark ?? true)).text)))
+                Behavior on color { ColorAnimation { duration: 120 } }
             }
         }
 

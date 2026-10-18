@@ -23,13 +23,12 @@ import VLC.Style
 import VLC.Playlist
 import VLC.Util
 
-Widgets.IconToolButton {
+Widgets.SvgToolButton {
     id: repeatBtn
 
     checked: MainPlaylistController.repeatMode !== PlaylistController.PLAYBACK_REPEAT_NONE
-    text: (MainPlaylistController.repeatMode === PlaylistController.PLAYBACK_REPEAT_CURRENT)
-          ? VLCIcons.repeat_one
-          : VLCIcons.repeat_all
+    iconName: (MainPlaylistController.repeatMode === PlaylistController.PLAYBACK_REPEAT_CURRENT)
+              ? "repeat_one" : "repeat"
     onClicked: MainPlaylistController.toggleRepeatMode()
     description: qsTr("Repeat")
 

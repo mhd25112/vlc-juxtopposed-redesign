@@ -18,6 +18,7 @@
 import QtQuick
 
 import VLC.MainInterface
+import VLC.Player
 import VLC.MediaLibrary
 
 import VLC.Widgets as Widgets
@@ -42,7 +43,18 @@ Widgets.GridItem {
     fallbackImage: VLCStyle.noArtVideoCover
     fillMode: Image.Stretch
 
-    title: model.title || qsTr("Unknown title")
+    // what plays: its name in the accent
+    readonly property bool playing: !!model?.mrl && Player.isStarted
+                                    && decodeURIComponent(String(model.mrl)) === decodeURIComponent(String(Player.url))
+
+    accentTitle: playing
+
+    // the name of the file, as in the design ("The_Wand_S01E05.mp4")
+    title: {
+        const mrl = decodeURIComponent(String(model?.mrl ?? ""))
+        const name = mrl.substring(mrl.lastIndexOf("/") + 1)
+        return name || model.title || qsTr("Unknown title")
+    }
     // the redesign shows the name only, and dims what was watched
     subtitle: ""
     dimmed: model?.isNew === false

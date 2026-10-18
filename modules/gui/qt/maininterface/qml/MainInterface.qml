@@ -329,6 +329,21 @@ Item {
                     return "qrc:///qt/qml/VLC/MainInterface/MainDisplay.qml"
                 }
             }
+
+            // the library and the player fade in as they replace each other
+            onLoaded: {
+                item.opacity = 0
+                viewFade.restart()
+            }
+
+            NumberAnimation {
+                id: viewFade
+                target: viewLoader.item
+                property: "opacity"
+                to: 1
+                duration: 180
+                easing.type: Easing.OutQuad
+            }
         }
 
         Loader {

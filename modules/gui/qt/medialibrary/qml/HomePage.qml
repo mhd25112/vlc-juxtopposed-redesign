@@ -370,9 +370,10 @@ Widgets.PageExt {
                         width: foldersRow.cardSize
                         height: foldersRow.cardSize + VLCStyle.dp(30, VLCStyle.scale)
 
-                        onClicked: History.push(["video", "all", "group"],
-                                                { parentId: model.id, title: model.title },
-                                                Qt.MouseFocusReason)
+                        // the folder on the disk, in the folder view of Videos
+                        onClicked: History.push(["video", "folder"], { url: model.mrl }, Qt.MouseFocusReason)
+
+                        hoverEnabled: true
 
                         background: null
 
@@ -383,14 +384,18 @@ Widgets.PageExt {
                                 width: foldersRow.cardSize
                                 height: foldersRow.cardSize
                                 radius: VLCStyle.gridCover_radius
-                                color: folderCard.hovered ? Qt.lighter(PanelStyle.colors((theme.palette?.isDark ?? true)).hover, 1.15)
-                                                          : PanelStyle.colors((theme.palette?.isDark ?? true)).hover
+                                // #1E1E1E in the design, lighter when hovered
+                                readonly property color rest: (theme.palette?.isDark ?? true) ? "#1e1e1e"
+                                                                                               : PanelStyle.light.card
+                                color: folderCard.hovered ? Qt.lighter(rest, 1.3) : rest
+                                Behavior on color { ColorAnimation { duration: 120 } }
 
                                 Widgets.PanelIcon {
                                     anchors.centerIn: parent
                                     name: "folder"
                                     size: VLCStyle.dp(44, VLCStyle.scale)
-                                    color: PanelStyle.colors((theme.palette?.isDark ?? true)).label
+                                    color: folderCard.hovered ? PanelStyle.colors((theme.palette?.isDark ?? true)).bright
+                                                              : PanelStyle.colors((theme.palette?.isDark ?? true)).label
                                 }
                             }
 
@@ -399,7 +404,8 @@ Widgets.PageExt {
                                 text: folderCard.model.title
                                 elide: Text.ElideRight
                                 font.pixelSize: VLCStyle.dp(15, VLCStyle.scale)
-                                color: PanelStyle.colors((theme.palette?.isDark ?? true)).text
+                                color: folderCard.hovered ? PanelStyle.colors((theme.palette?.isDark ?? true)).bright
+                                                          : PanelStyle.colors((theme.palette?.isDark ?? true)).text
                             }
                         }
 

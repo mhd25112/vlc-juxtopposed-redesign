@@ -563,6 +563,30 @@ ControlbarProfileModel::ControlbarProfileModel(QSettings* settings, QObject *par
     }, Qt::QueuedConnection);
 }
 
+namespace {
+
+// the title bar of the player in the redesign: the main menu, the library and
+// the folder of what plays on the left, its name in the middle, fullscreen on
+// the right (next to the window buttons)
+const std::array<QVector<int>, 3> defaultTitlebar {
+    QVector<int> { ControlListModel::APP_MENU_BUTTON,
+                   ControlListModel::LIBRARY_BUTTON,
+                   ControlListModel::DIVIDER_WIDGET,
+                   ControlListModel::FOLDER_NAME_WIDGET },
+    QVector<int> { ControlListModel::FILE_NAME_WIDGET },
+    QVector<int> { ControlListModel::FULLSCREEN_BUTTON }
+};
+
+// profiles made before the title bar could be arranged get the default one
+void ensureTitlebar(ControlbarProfile *profile)
+{
+    if (profile->getModel(PlayerControlbarModel::Titlebar))
+        return;
+    profile->setModelData(PlayerControlbarModel::Titlebar, defaultTitlebar);
+}
+
+}
+
 void ControlbarProfileModel::insertDefaults()
 {
     // Add default profiles:
@@ -576,6 +600,7 @@ void ControlbarProfileModel::insertDefaults()
             continue;
 
         ptrNewProfile->injectModel(i.modelData);
+        ensureTitlebar(ptrNewProfile);
         ptrNewProfile->resetDirty(); // default profiles should not be dirty initially
     }
 
@@ -898,6 +923,9 @@ bool ControlbarProfileModel::reload()
             ptrNewProfile->setModelData(identifier, data);
             ptrNewProfile->resetDirty(); // Newly loaded model can not be dirty
         }
+
+        ensureTitlebar(ptrNewProfile);
+        ptrNewProfile->resetDirty();
 
         profiles.append(ptrNewProfile);
     }

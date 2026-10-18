@@ -77,12 +77,14 @@ T.Control {
         root.y = Qt.binding(() => root.parent.height - root.height - root.margin)
     }
 
+    readonly property bool _dragging: dragHandler.active || previewMouse.drag.active
+
     Behavior on x {
-        enabled: !dragHandler.active
+        enabled: !root._dragging
         NumberAnimation { duration: VLCStyle.duration_short; easing.type: Easing.OutCubic }
     }
     Behavior on y {
-        enabled: !dragHandler.active
+        enabled: !root._dragging
         NumberAnimation { duration: VLCStyle.duration_short; easing.type: Easing.OutCubic }
     }
 
@@ -157,53 +159,75 @@ T.Control {
                 color: root._c.dim
             }
 
-            HoverHandler {
-                id: previewHover
-            }
+            // over the video: the video gets no mouse events here
+            MouseArea {
+                id: previewMouse
 
-            TapHandler {
-                onTapped: MainPlaylistController.togglePlayPause()
-                onDoubleTapped: MainCtx.playerView = true
-            }
-
-            // controls over the picture, on hover
-            Item {
                 anchors.fill: parent
-                visible: previewHover.hovered || playButton.hovered || openButton.hovered || stopButton.hovered
+                hoverEnabled: true
+                acceptedButtons: Qt.LeftButton
 
-                Rectangle {
+                // moved by the picture too, then to the closest corner
+                drag.target: root
+                drag.threshold: VLCStyle.dp(6, VLCStyle.scale)
+                drag.minimumX: 0
+                drag.maximumX: root.parent ? root.parent.width - root.width : 0
+                drag.minimumY: 0
+                drag.maximumY: root.parent ? root.parent.height - root.height : 0
+                drag.onActiveChanged: {
+                    if (!drag.active)
+                        root._snap()
+                }
+
+                onDoubleClicked: MainCtx.playerView = true
+
+                readonly property bool active: containsMouse || playButton.hovered
+                                               || openButton.hovered || stopButton.hovered
+
+                // controls over the picture, faded in on hover
+                Item {
+                    id: overlay
+
                     anchors.fill: parent
-                    color: Qt.rgba(0, 0, 0, 0.35)
-                    radius: preview.radius
-                }
+                    opacity: previewMouse.active && !previewMouse.drag.active ? 1 : 0
+                    Behavior on opacity {
+                        NumberAnimation { duration: 160; easing.type: Easing.OutQuad }
+                    }
 
-                OverlayButton {
-                    id: playButton
-                    anchors.centerIn: parent
-                    size: VLCStyle.dp(52, VLCStyle.scale)
-                    iconName: Player.playingState === Player.PLAYING_STATE_PLAYING ? "pause" : "play_filled"
-                    description: qsTr("Play/Pause")
-                    onClicked: MainPlaylistController.togglePlayPause()
-                }
+                    Rectangle {
+                        anchors.fill: parent
+                        color: Qt.rgba(0, 0, 0, 0.4)
+                        radius: preview.radius
+                    }
 
-                OverlayButton {
-                    id: openButton
-                    anchors.left: parent.left
-                    anchors.top: parent.top
-                    anchors.margins: VLCStyle.dp(8, VLCStyle.scale)
-                    iconName: "popout"
-                    description: qsTr("Open the player")
-                    onClicked: MainCtx.playerView = true
-                }
+                    OverlayButton {
+                        id: playButton
+                        anchors.centerIn: parent
+                        size: VLCStyle.dp(52, VLCStyle.scale)
+                        iconName: Player.playingState === Player.PLAYING_STATE_PLAYING ? "pause" : "play_filled"
+                        description: qsTr("Play/Pause")
+                        onClicked: MainPlaylistController.togglePlayPause()
+                    }
 
-                OverlayButton {
-                    id: stopButton
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    anchors.margins: VLCStyle.dp(8, VLCStyle.scale)
-                    iconName: "close"
-                    description: qsTr("Stop")
-                    onClicked: MainPlaylistController.stop()
+                    OverlayButton {
+                        id: openButton
+                        anchors.left: parent.left
+                        anchors.top: parent.top
+                        anchors.margins: VLCStyle.dp(8, VLCStyle.scale)
+                        iconName: "popout"
+                        description: qsTr("Open the player")
+                        onClicked: MainCtx.playerView = true
+                    }
+
+                    OverlayButton {
+                        id: stopButton
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        anchors.margins: VLCStyle.dp(8, VLCStyle.scale)
+                        iconName: "close"
+                        description: qsTr("Stop")
+                        onClicked: MainPlaylistController.stop()
+                    }
                 }
             }
         }
@@ -404,15 +428,19 @@ T.Control {
         implicitWidth: size
         implicitHeight: size
 
+        scale: overlayButton.down ? 0.94 : (overlayButton.hovered ? 1.06 : 1)
+        Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.OutQuad } }
+
         background: Rectangle {
             radius: width / 2
-            color: overlayButton.hovered ? Qt.rgba(0, 0, 0, 0.75) : Qt.rgba(0, 0, 0, 0.5)
+            color: overlayButton.hovered ? Qt.rgba(0, 0, 0, 0.78) : Qt.rgba(0, 0, 0, 0.5)
+            Behavior on color { ColorAnimation { duration: 120 } }
         }
 
         contentItem: Widgets.PanelIcon {
             name: overlayButton.iconName
             size: overlayButton.size * 0.5
-            color: "#eaeaea"
+            color: overlayButton.hovered ? "#ffffff" : "#eaeaea"
         }
 
         T.ToolTip.visible: hovered && description !== ""

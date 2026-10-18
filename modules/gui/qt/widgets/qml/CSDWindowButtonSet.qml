@@ -35,10 +35,17 @@ Row {
 
     readonly property bool useWinIcons: ((MainCtx.osName === MainCtx.Windows)&&(MainCtx.osVersion >= 10))
 
+    // shown between the other buttons and Close
+    property Component beforeClose: null
+
     readonly property bool buttonHovered: {
         let h = false
         for (let i = 0; i < repeater.count; ++i) {
             const button = repeater.itemAt(i)
+            h = h || button.hovered || button.showHovered
+        }
+        for (let i = 0; i < closeRepeater.count; ++i) {
+            const button = closeRepeater.itemAt(i)
             h = h || button.hovered || button.showHovered
         }
 
@@ -53,7 +60,26 @@ Row {
     Repeater {
         id: repeater
 
-        model: MainCtx.csdButtonModel.windowCSDButtons
+        model: Array.from(MainCtx.csdButtonModel.windowCSDButtons).filter((b) => b.type !== CSDButton.Close)
+        delegate: buttonDelegate
+    }
+
+    Loader {
+        height: windowButtonGroup.height
+        active: !!windowButtonGroup.beforeClose
+        visible: active
+        sourceComponent: windowButtonGroup.beforeClose
+    }
+
+    Repeater {
+        id: closeRepeater
+
+        model: Array.from(MainCtx.csdButtonModel.windowCSDButtons).filter((b) => b.type === CSDButton.Close)
+        delegate: buttonDelegate
+    }
+
+    Component {
+        id: buttonDelegate
 
         CSDWindowButton {
             required property var modelData

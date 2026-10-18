@@ -31,6 +31,8 @@ FocusScope {
     id: root
 
     required property PlayerControlbarModel barModel
+    // the items of the title bar
+    property PlayerControlbarModel titleModel: null
 
     function save() {
         MainCtx.controlbarProfileModel.save()
@@ -46,6 +48,13 @@ FocusScope {
     focus: true
     Keys.onEscapePressed: cancel()
 
+    // Escape cancels wherever the keyboard focus is
+    Shortcut {
+        sequence: "Esc"
+        context: Qt.WindowShortcut
+        onActivated: root.cancel()
+    }
+
     readonly property ColorContext colorContext: ColorContext {
         id: theme
         colorSet: ColorContext.View
@@ -57,12 +66,16 @@ FocusScope {
     // changes made, for the Save button
     property int _changes: 0
 
-    // the controls in the bar
+    // the controls in the bar and the title bar
     property var _used: []
 
     function _updateUsed() {
-        const m = root.barModel
-        root._used = m ? [].concat(m.left.ids(), m.center.ids(), m.right.ids()) : []
+        let used = []
+        for (const m of [root.barModel, root.titleModel]) {
+            if (m)
+                used = used.concat(m.left.ids(), m.center.ids(), m.right.ids())
+        }
+        root._used = used
     }
 
     Component.onCompleted: _updateUsed()
@@ -82,10 +95,24 @@ FocusScope {
         function onCountChanged() { root._updateUsed(); ++root._changes }
         function onRowsMoved() { ++root._changes }
     }
+    Connections {
+        target: root.titleModel?.left ?? null
+        function onCountChanged() { root._updateUsed(); ++root._changes }
+        function onRowsMoved() { ++root._changes }
+    }
+    Connections {
+        target: root.titleModel?.center ?? null
+        function onCountChanged() { root._updateUsed(); ++root._changes }
+        function onRowsMoved() { ++root._changes }
+    }
+    Connections {
+        target: root.titleModel?.right ?? null
+        function onCountChanged() { root._updateUsed(); ++root._changes }
+        function onRowsMoved() { ++root._changes }
+    }
 
     readonly property var _available: PlayerControlbarControls.customizeList.filter((entry) =>
-        entry.id === ControlListModel.WIDGET_SPACER || entry.id === ControlListModel.WIDGET_SPACER_EXTEND
-        || !root._used.includes(entry.id))
+        PlayerControlbarControls.customizeRepeatable.includes(entry.id) || !root._used.includes(entry.id))
 
     // the player behind, dimmed
     Rectangle {
@@ -228,13 +255,22 @@ FocusScope {
                                 color: drag.containsMouse ? root._c.bright : root._c.text
                             }
 
-                            // the gap: a short line
+                            // the divider: a short line
                             Rectangle {
                                 anchors.centerIn: parent
-                                visible: entry.modelData.id === ControlListModel.WIDGET_SPACER
+                                visible: entry.modelData.id === ControlListModel.DIVIDER_WIDGET
                                 width: VLCStyle.dp(1, VLCStyle.scale)
                                 height: parent.height * 0.6
                                 color: root._c.dim
+                            }
+
+                            // the thumbnail: a picture
+                            Rectangle {
+                                anchors.fill: parent
+                                anchors.margins: VLCStyle.dp(3, VLCStyle.scale)
+                                visible: entry.modelData.id === ControlListModel.THUMBNAIL_WIDGET
+                                radius: VLCStyle.dp(2, VLCStyle.scale)
+                                color: root._c.separatorBright
                             }
                         }
 
@@ -273,16 +309,8 @@ FocusScope {
                     onClicked: root.cancel()
                 }
 
-                Text {
+                Item {
                     Layout.fillWidth: true
-                    Layout.leftMargin: VLCStyle.dp(16, VLCStyle.scale)
-                    elide: Text.ElideRight
-                    text: {
-                        const current = MainCtx.controlbarProfileModel.currentModel
-                        return current ? qsTr("Profile: %1").arg(current.name) : ""
-                    }
-                    font.pixelSize: VLCStyle.dp(13, VLCStyle.scale)
-                    color: root._c.dim
                 }
 
                 Widgets.PanelButton {

@@ -52,6 +52,14 @@ FocusScope{
     property bool showToolbar: false
     property bool pinControls: false
 
+    // "Customize Player": the groups of the title bar in frames, to be
+    // moved around
+    property bool editMode: false
+
+    // the items of the title bar, arranged like the control bar
+    readonly property PlayerControlbarModel titlebarModel:
+        MainCtx.controlbarProfileModel.currentModel?.getModel(PlayerControlbarModel.Titlebar) ?? null
+
     readonly property ColorContext colorContext: ColorContext {
         id: theme
         colorSet: ColorContext.Window
@@ -74,9 +82,6 @@ FocusScope{
     // Signals
 
     signal togglePlaylistVisibility()
-    // the library next to the video, see CompactLibrary
-    signal toggleLibrary()
-    property bool libraryVisible: false
     signal requestLockUnlockAutoHide(bool lock)
     signal backRequested()
 
@@ -293,107 +298,14 @@ FocusScope{
                     color: theme.accent
                 }
 
-                Widgets.SvgToolButton {
-                    id: backBtn
+                TitlebarZone {
+                    id: leftZone
 
                     anchors.verticalCenter: parent.verticalCenter
-                    iconName: "more"
-                    description: qsTr("Menu")
-                    AccessibleCompat.id: "topBarMenuButton"
-                    width: VLCStyle.dp(34, VLCStyle.scale)
                     height: VLCStyle.dp(34, VLCStyle.scale)
-                    checked: mainMenu.visible
-
+                    visible: !root.editMode
+                    zoneModel: root.titlebarModel?.left ?? null
                     focus: true
-
-                    Navigation.parentItem: root
-                    Navigation.rightItem: libraryButton
-
-                    onClicked: mainMenu.show(backBtn)
-                    onHoveredChanged: root.requestLockUnlockAutoHide(hovered)
-
-                    Widgets.AppMainMenu {
-                        id: mainMenu
-                        onOpened: root.requestLockUnlockAutoHide(true)
-                        onClosed: root.requestLockUnlockAutoHide(false)
-                    }
-                }
-
-                Widgets.SvgToolButton {
-                    id: libraryButton
-
-                    anchors.verticalCenter: parent.verticalCenter
-                    iconName: root.libraryVisible ? "sidebar_open" : "sidebar"
-                    description: qsTr("Library")
-                    checked: root.libraryVisible
-                    width: VLCStyle.dp(34, VLCStyle.scale)
-                    height: VLCStyle.dp(34, VLCStyle.scale)
-
-                    Navigation.parentItem: root
-                    Navigation.leftItem: backBtn
-                    Navigation.rightItem: folderButton
-
-                    onClicked: root.toggleLibrary()
-                    onHoveredChanged: root.requestLockUnlockAutoHide(hovered)
-                }
-
-                Rectangle {
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: VLCStyle.border
-                    height: VLCStyle.dp(18, VLCStyle.scale)
-                    color: PanelStyle.colors((theme.palette?.isDark ?? true)).separatorBright
-                    visible: folderButton.visible
-                }
-
-                // the folder of what plays: the familiar name of the show,
-                // it opens the library there
-                T.AbstractButton {
-                    id: folderButton
-
-                    readonly property string folder: {
-                        const url = decodeURIComponent(String(Player.url))
-                        const parts = url.split(/[\\/]/).filter((p) => p !== "")
-                        return parts.length > 1 ? parts[parts.length - 2] : ""
-                    }
-
-                    anchors.verticalCenter: parent.verticalCenter
-                    visible: folder !== "" && !folder.endsWith(":")
-                    implicitWidth: folderRow.implicitWidth + VLCStyle.dp(16, VLCStyle.scale)
-                    implicitHeight: VLCStyle.dp(30, VLCStyle.scale)
-
-                    onClicked: root.toggleLibrary()
-                    onHoveredChanged: root.requestLockUnlockAutoHide(hovered)
-
-                    background: Rectangle {
-                        radius: VLCStyle.dp(6, VLCStyle.scale)
-                        color: folderButton.hovered ? PanelStyle.colors((theme.palette?.isDark ?? true)).hover : "transparent"
-                    }
-
-                    contentItem: Item {
-                        Row {
-                            id: folderRow
-
-                            anchors.centerIn: parent
-                            spacing: VLCStyle.dp(8, VLCStyle.scale)
-
-                            Widgets.PanelIcon {
-                                anchors.verticalCenter: parent.verticalCenter
-                                name: "folder"
-                                size: VLCStyle.dp(18, VLCStyle.scale)
-                                color: PanelStyle.colors((theme.palette?.isDark ?? true)).label
-                            }
-
-                            Text {
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: folderButton.folder
-                                font.pixelSize: VLCStyle.dp(13, VLCStyle.scale)
-                                color: folderButton.hovered ? PanelStyle.colors((theme.palette?.isDark ?? true)).bright
-                                                            : PanelStyle.colors((theme.palette?.isDark ?? true)).text
-                            }
-                        }
-                    }
-
-                    Accessible.name: qsTr("Open %1 in the library").arg(folder)
                 }
             }
         }
@@ -418,7 +330,7 @@ FocusScope{
 
             onHidden: {
                 if (activeFocus) {
-                    backBtn.forceActiveFocus()
+                    leftZone.forceActiveFocus()
                 }
             }
 
@@ -428,31 +340,30 @@ FocusScope{
         }
     }
 
-    //FIXME use the the right class
-    T.Label {
+    // the middle group of the title bar: the name of what plays
+    Item {
         id: centerTitleText
 
         readonly property int _leftLimit: logoOrResume.x + logoOrResume.width
-        readonly property int _rightLimit: playlistGroup.x
-        readonly property int _availableWidth: _rightLimit - _leftLimit
+        readonly property int _rightLimit: root.showCSD ? csdDecorations.x : playlistGroup.x
+        readonly property int _availableWidth: _rightLimit - _leftLimit - 2 * VLCStyle.margin_small
         readonly property int _centerX: ((root.width - centerTitleText.implicitWidth) / 2)
         readonly property bool _alignHCenter: _centerX > _leftLimit
                                               && _centerX + centerTitleText.implicitWidth < _rightLimit
 
-        visible: (_showCenterText && root.resumeVisible === false)
+        visible: (_showCenterText && root.resumeVisible === false && !root.editMode)
 
         enabled: visible
 
-        width: Math.min(centerTitleText._availableWidth, centerTitleText.implicitWidth)
+        implicitWidth: centerZone.implicitWidth
+        width: Math.max(0, Math.min(centerTitleText._availableWidth, centerTitleText.implicitWidth))
 
-        leftPadding: VLCStyle.margin_small
-        rightPadding: VLCStyle.margin_small
+        TitlebarZone {
+            id: centerZone
 
-        text: root.title
-        color: PanelStyle.colors((theme.palette?.isDark ?? true)).text
-        font.pixelSize: VLCStyle.dp(13, VLCStyle.scale)
-        elide: Text.ElideRight
-        verticalAlignment: Text.AlignVCenter
+            anchors.fill: parent
+            zoneModel: root.titlebarModel?.center ?? null
+        }
 
         on_AlignHCenterChanged: _layout()
         Component.onCompleted: _layout()
@@ -463,7 +374,7 @@ FocusScope{
                 centerTitleText.anchors.horizontalCenter = root.horizontalCenter
             } else {
                 centerTitleText.anchors.horizontalCenter = undefined
-                centerTitleText.x = Qt.binding(function() { return centerTitleText._leftLimit })
+                centerTitleText.x = Qt.binding(function() { return centerTitleText._leftLimit + VLCStyle.margin_small })
             }
         }
     }
@@ -508,10 +419,24 @@ FocusScope{
             ? "qrc:///qt/qml/VLC/Widgets/CSDThemeButtonSet.qml"
             : "qrc:///qt/qml/VLC/Widgets/CSDWindowButtonSet.qml"
 
+        onLoaded: {
+            if ("beforeClose" in item)
+                item.beforeClose = rightZoneComponent
+        }
+
         Connections {
             target: csdDecorations.item
             enabled: csdDecorations.status === Loader.Ready
             function onButtonHoveredChanged() { root.requestLockUnlockAutoHide(csdDecorations.item.buttonHovered) }
+        }
+    }
+
+    Component {
+        id: rightZoneComponent
+
+        TitlebarZone {
+            visible: !root.editMode
+            zoneModel: root.titlebarModel?.right ?? null
         }
     }
 
@@ -529,26 +454,12 @@ FocusScope{
 
         visible: root._showTopBar
 
-        Widgets.SvgToolButton {
+        // with the window buttons of the system: on the right
+        TitlebarZone {
             anchors.verticalCenter: parent.verticalCenter
-            iconName: "pip"
-            description: qsTr("Picture in picture")
-            width: VLCStyle.dp(36, VLCStyle.scale)
             height: VLCStyle.dp(34, VLCStyle.scale)
-            visible: root.showCSD && MainCtx.canShowVideoPIP
-            onClicked: root.backRequested()
-            onHoveredChanged: root.requestLockUnlockAutoHide(hovered)
-        }
-
-        Widgets.SvgToolButton {
-            anchors.verticalCenter: parent.verticalCenter
-            iconName: "fullscreen"
-            description: qsTr("Fullscreen")
-            width: VLCStyle.dp(36, VLCStyle.scale)
-            height: VLCStyle.dp(34, VLCStyle.scale)
-            visible: root.showCSD
-            onClicked: MainCtx.toggleInterfaceFullScreen()
-            onHoveredChanged: root.requestLockUnlockAutoHide(hovered)
+            visible: !root.showCSD && !root.editMode
+            zoneModel: root.titlebarModel?.right ?? null
         }
 
         Widgets.IconToolButton {
@@ -571,7 +482,7 @@ FocusScope{
             checked: contextMenu.shown
 
             Navigation.parentItem: root
-            Navigation.leftItem: backBtn
+            Navigation.leftItem: leftZone
             Navigation.rightItem: playlistButton
 
             onClicked: contextMenu.popup(this.mapToGlobal(0, height))
@@ -617,13 +528,57 @@ FocusScope{
             plListView: root.plListView
             
             Navigation.parentItem: root
-            Navigation.leftItem: menuSelector.visible ? menuSelector : backBtn
+            Navigation.leftItem: menuSelector.visible ? menuSelector : leftZone
 
             onClicked: togglePlaylistVisibility()
 
             Accessible.onToggleAction:togglePlaylistVisibility()
 
             onHoveredChanged: root.requestLockUnlockAutoHide(hovered)
+        }
+    }
+
+    // "Customize Player": the groups of the title bar in frames
+    Loader {
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: root.showCSD ? csdDecorations.left : parent.right
+        anchors.leftMargin: root._sideMargin + VLCStyle.dp(40, VLCStyle.scale)
+        anchors.rightMargin: VLCStyle.margin_small
+        height: VLCStyle.dp(40, VLCStyle.scale)
+        z: 2
+
+        active: root.editMode
+        sourceComponent: ControlBarEditor {
+            barModel: root.titlebarModel
+            zoneHeight: VLCStyle.dp(34, VLCStyle.scale)
+            centerEmptyText: qsTr("Title")
+        }
+    }
+
+    // a group of items of the title bar
+    component TitlebarZone: RowLayout {
+        id: zone
+
+        property var zoneModel: null
+
+        spacing: VLCStyle.dp(4, VLCStyle.scale)
+
+        ControlRepeater {
+            id: zoneRepeater
+
+            model: ControlListFilter {
+                sourceModel: zone.zoneModel
+
+                player: Player
+                ctx: MainCtx
+            }
+
+            Navigation.parentItem: root
+
+            onRequestLockUnlockAutoHide: (lock) => root.requestLockUnlockAutoHide(lock)
+
+            Component.onCompleted: root.forceUnlock.connect(zoneRepeater.forceUnlock)
         }
     }
 }

@@ -27,12 +27,12 @@ import VLC.Widgets as Widgets
 import VLC.Style
 import VLC.Util
 
-Widgets.IconToolButton {
+Widgets.SvgToolButton {
     id: root
 
     signal requestLockUnlockAutoHide(bool lock)
 
-    text: VLCIcons.bookmark
+    iconName: "bookmark"
     description: qsTr("Bookmarks")
 
     AccessibleCompat.id: "bookmarkButton"

@@ -72,6 +72,17 @@
     </qresource>
     <qresource prefix="/redesign">
         <file alias="capture.svg">pixmaps/redesign/capture.svg</file>
+        <file alias="note.svg">pixmaps/redesign/note.svg</file>
+        <file alias="album.svg">pixmaps/redesign/album.svg</file>
+        <file alias="genre.svg">pixmaps/redesign/genre.svg</file>
+        <file alias="hdr.svg">pixmaps/redesign/hdr.svg</file>
+        <file alias="zoom.svg">pixmaps/redesign/zoom.svg</file>
+        <file alias="sidebar_right.svg">pixmaps/redesign/sidebar_right.svg</file>
+        <file alias="replay.svg">pixmaps/redesign/replay.svg</file>
+        <file alias="bookmark_add.svg">pixmaps/redesign/bookmark_add.svg</file>
+        <file alias="snapshot.svg">pixmaps/redesign/snapshot.svg</file>
+        <file alias="heart_filled.svg">pixmaps/redesign/heart_filled.svg</file>
+        <file alias="repeat_one.svg">pixmaps/redesign/repeat_one.svg</file>
         <file alias="clipboard.svg">pixmaps/redesign/clipboard.svg</file>
         <file alias="convert.svg">pixmaps/redesign/convert.svg</file>
         <file alias="disc.svg">pixmaps/redesign/disc.svg</file>

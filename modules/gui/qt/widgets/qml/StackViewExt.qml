@@ -40,9 +40,20 @@ T.StackView {
 
     // Settings
 
-    replaceEnter: null
+    // the new view fades in quickly, the old one goes at once (no overlap)
+    replaceEnter: Transition {
+        NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 160; easing.type: Easing.OutQuad }
+    }
+    pushEnter: Transition {
+        NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 160; easing.type: Easing.OutQuad }
+    }
+    popEnter: Transition {
+        NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 160; easing.type: Easing.OutQuad }
+    }
 
     replaceExit: null
+    pushExit: null
+    popExit: null
 
     //don't report this node
     Accessible.ignored: true

@@ -296,6 +296,11 @@ libqt_plugin_la_SOURCES = \
 	player/control_list_model.cpp player/control_list_model.hpp \
 	player/control_list_filter.cpp \
 	player/control_list_filter.hpp \
+	player/player_tweaks.cpp \
+	player/player_tweaks_folders.cpp \
+	player/player_tweaks_cues.cpp \
+	player/player_tweaks_online.cpp \
+	player/player_tweaks.hpp \
 	playlist/media.hpp \
 	playlist/playlist_common.hpp \
 	playlist/playlist_controller.cpp \
@@ -498,6 +503,7 @@ nodist_libqt_plugin_la_SOURCES = \
 	player/player_controlbar_model.moc.cpp \
 	player/control_list_model.moc.cpp \
 	player/control_list_filter.moc.cpp \
+	player/player_tweaks.moc.cpp \
 	playlist/playlist_controller.moc.cpp \
 	playlist/playlist_item.moc.cpp \
 	playlist/playlist_model.moc.cpp \
@@ -996,6 +1002,17 @@ libqt_plugin_la_RES = \
 	pixmaps/redesign/video.svg \
 	pixmaps/redesign/visualizer.svg \
 	pixmaps/redesign/waveform.svg \
+	pixmaps/redesign/hdr.svg \
+	pixmaps/redesign/zoom.svg \
+	pixmaps/redesign/sidebar_right.svg \
+	pixmaps/redesign/replay.svg \
+	pixmaps/redesign/bookmark_add.svg \
+	pixmaps/redesign/snapshot.svg \
+	pixmaps/redesign/heart_filled.svg \
+	pixmaps/redesign/repeat_one.svg \
+	pixmaps/redesign/note.svg \
+	pixmaps/redesign/album.svg \
+	pixmaps/redesign/genre.svg \
 	pixmaps/redesign/add.svg \
 	pixmaps/redesign/arrow_left.svg \
 	pixmaps/redesign/arrow_right.svg \
@@ -1206,6 +1223,7 @@ libqml_module_medialibrary_a_QML = \
 	medialibrary/qml/HomePage.qml \
 	medialibrary/qml/MediaView.qml \
 	medialibrary/qml/VideoGroupDisplay.qml \
+	medialibrary/qml/VideoFolderDisplay.qml \
 	medialibrary/qml/MusicAlbums.qml \
 	medialibrary/qml/MusicAlbumsDisplay.qml \
 	medialibrary/qml/MusicAlbumsGridExpandDelegate.qml \
@@ -1384,6 +1402,29 @@ libqml_module_playercontrols_a_QML = \
 	player/qml/controlbarcontrols/SkipForwardButton.qml \
 	player/qml/controlbarcontrols/SlowerButton.qml \
 	player/qml/controlbarcontrols/SnapshotButton.qml \
+	player/qml/controlbarcontrols/DividerWidget.qml \
+	player/qml/controlbarcontrols/Forward10Button.qml \
+	player/qml/controlbarcontrols/Backward10Button.qml \
+	player/qml/controlbarcontrols/Forward15Button.qml \
+	player/qml/controlbarcontrols/Backward15Button.qml \
+	player/qml/controlbarcontrols/PipButton.qml \
+	player/qml/controlbarcontrols/HdrButton.qml \
+	player/qml/controlbarcontrols/ZoomButton.qml \
+	player/qml/controlbarcontrols/ChaptersButton.qml \
+	player/qml/controlbarcontrols/SidebarButton.qml \
+	player/qml/controlbarcontrols/SettingsButton.qml \
+	player/qml/controlbarcontrols/HomeButton.qml \
+	player/qml/controlbarcontrols/ThumbnailWidget.qml \
+	player/qml/controlbarcontrols/FileNameWidget.qml \
+	player/qml/controlbarcontrols/ArtistNameWidget.qml \
+	player/qml/controlbarcontrols/FolderNameWidget.qml \
+	player/qml/controlbarcontrols/PlaylistNameWidget.qml \
+	player/qml/controlbarcontrols/ReplayButton.qml \
+	player/qml/controlbarcontrols/FavoriteButton.qml \
+	player/qml/controlbarcontrols/AddBookmarkButton.qml \
+	player/qml/controlbarcontrols/PlaylistsButton.qml \
+	player/qml/controlbarcontrols/AppMenuButton.qml \
+	player/qml/controlbarcontrols/LibraryButton.qml \
 	player/qml/controlbarcontrols/SpacerWidget.qml \
 	player/qml/controlbarcontrols/StopButton.qml \
 	player/qml/controlbarcontrols/SubtitleButton.qml \

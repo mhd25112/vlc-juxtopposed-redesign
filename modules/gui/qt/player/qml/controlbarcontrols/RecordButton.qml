@@ -24,51 +24,25 @@ import VLC.Style
 import VLC.Player
 import VLC.Util
 
-Widgets.IconToolButton {
+Widgets.SvgToolButton {
     id: control
 
     enabled: !paintOnly && Player.isStarted
 
-    color: "#FFFF0000" //red means recording
-    text: VLCIcons.record
-    description: qsTr("record")
+    // red while recording, blinking
+    color: Player.recording ? "#ff3b30" : stateColor
+    iconName: "record"
+    description: Player.recording ? qsTr("Stop recording") : qsTr("Record")
 
     AccessibleCompat.id: "recordButton"
 
     onClicked: Player.toggleRecord()
 
-    //IconToolButton already contains a color animation that would conflict
-    contentItem: Widgets.IconLabel {
-        text: control.text
-
-        color: control.color
-
-        SequentialAnimation on color {
-            loops: Animation.Infinite
-            running: control.enabled && Player.recording
-
-            ColorAnimation  {
-                from:  "#FFFF0000"
-                to: "#00FF0000"//use "red" transparent
-                //this is an animation and not a transisition, we explicitly want a long duration
-                duration: 1000
-                easing.type: Easing.InSine
-            }
-
-            ColorAnimation  {
-                from:"#00FF0000"
-                to: "#FFFF0000"
-                //this is an animation and not a transisition, we explicitly want a long duration
-                duration: 1000
-                easing.type: Easing.OutSine
-            }
-
-            onStopped: {
-                color = "#FFFF0000"
-            }
-        }
-        font: control.font
+    SequentialAnimation on opacity {
+        loops: Animation.Infinite
+        running: Player.recording
+        NumberAnimation { to: 0.35; duration: 700; easing.type: Easing.InOutSine }
+        NumberAnimation { to: 1; duration: 700; easing.type: Easing.InOutSine }
+        onRunningChanged: if (!running) control.opacity = 1
     }
-
-
 }

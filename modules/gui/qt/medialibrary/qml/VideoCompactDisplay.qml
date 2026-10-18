@@ -21,6 +21,7 @@ import QtQuick.Layouts
 
 import VLC.MediaLibrary
 import VLC.MainInterface
+import VLC.Player
 import VLC.Util
 import VLC.Widgets as Widgets
 import VLC.Style
@@ -71,6 +72,14 @@ Widgets.ExpandGridView {
         property bool selected: false
 
         readonly property bool watched: model?.isNew === false
+        // what plays: in the accent, as in the design
+        readonly property bool playing: !!model?.mrl && Player.isStarted
+                                        && decodeURIComponent(String(model.mrl)) === decodeURIComponent(String(Player.url))
+        // the name of the file, as in the design ("The_Wand_S01E05.mp4")
+        readonly property string fileName: {
+            const mrl = decodeURIComponent(String(model?.mrl ?? ""))
+            return mrl.substring(mrl.lastIndexOf("/") + 1)
+        }
 
         width: root.cellWidth
         height: root.cellHeight
@@ -135,11 +144,11 @@ Widgets.ExpandGridView {
                     opacity: line.watched && !line.hovered ? 0.6 : 1
                 }
 
-                // play on hover
+                // play on hover, and on what plays
                 Rectangle {
                     anchors.fill: parent
                     radius: VLCStyle.dp(3, VLCStyle.scale)
-                    visible: line.hovered
+                    visible: line.hovered || line.playing
                     color: Qt.rgba(0, 0, 0, 0.55)
 
                     Widgets.PanelIcon {
@@ -173,11 +182,12 @@ Widgets.ExpandGridView {
             Text {
                 Layout.fillWidth: true
 
-                text: line.model?.title || qsTr("Unknown title")
+                text: line.fileName || line.model?.title || qsTr("Unknown title")
                 elide: Text.ElideMiddle
                 font.pixelSize: VLCStyle.dp(15, VLCStyle.scale)
-                color: line.hovered ? theme.accent
-                                    : (line.watched ? root._c.dim : root._c.text)
+                color: (line.hovered || line.playing) ? theme.accent
+                                                      : (line.watched ? root._c.dim : root._c.text)
+                Behavior on color { ColorAnimation { duration: 120 } }
             }
 
             Text {

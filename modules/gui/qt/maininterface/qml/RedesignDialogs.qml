@@ -71,9 +71,12 @@ Item {
             root.open(name, argument)
         }
         // PlayerTweaks.locateFolder(): show the videos of that folder
-        function onFolderLocated(parentId, title) {
-            History.push(["video", "all", "group"], { parentId: parentId, title: title },
-                         Qt.MouseFocusReason)
+        function onFolderLocated(parentId, title, url, hasVideo) {
+            MainCtx.playerView = false
+            if (hasVideo)
+                History.push(["video", "folder"], { url: url })
+            else
+                History.push(["music", "tracks"])
         }
     }
 

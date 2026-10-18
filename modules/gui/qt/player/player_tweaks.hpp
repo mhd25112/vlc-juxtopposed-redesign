@@ -34,6 +34,11 @@
 #include <QHash>
 #include <QSet>
 
+#include <atomic>
+#include <memory>
+#include <thread>
+#include <vector>
+
 #include "qt.hpp"
 
 // Backend of the player sidebar (Playback, Video, Audio and Subtitles tabs).
@@ -227,7 +232,9 @@ public:
     // "Show Subtitle Timeline on Seekbar": the start and end (in seconds,
     // one after the other) of the lines of the subtitle file of a media:
     // the one chosen for it, or the one next to it with its name
-    Q_INVOKABLE QVariantList subtitleCues(const QUrl &media) const;
+    // (or, without such a file, the subtitle track shown of the media itself,
+    // read in the background: subtitleCuesChanged() when it is known)
+    Q_INVOKABLE QVariantList subtitleCues(const QUrl &media);
 
     // "Show Metadata": what plays, in words (title, video, audio, size)
     Q_INVOKABLE QVariantMap mediaDetails() const;
@@ -245,7 +252,66 @@ public:
         emit customizingChanged();
     }
 
+    // the library next to the video (CompactLibrary) and its page
+    Q_PROPERTY(bool libraryVisible READ libraryVisible WRITE setLibraryVisible NOTIFY libraryChanged FINAL)
+    Q_PROPERTY(QString libraryPage READ libraryPage WRITE setLibraryPage NOTIFY libraryChanged FINAL)
+    bool libraryVisible() const { return m_libraryVisible; }
+    void setLibraryVisible(bool visible)
+    {
+        if (visible == m_libraryVisible)
+            return;
+        m_libraryVisible = visible;
+        emit libraryChanged();
+    }
+    QString libraryPage() const { return m_libraryPage; }
+    void setLibraryPage(const QString &page)
+    {
+        if (page == m_libraryPage)
+            return;
+        m_libraryPage = page;
+        emit libraryChanged();
+    }
+
+    // jumps by a number of seconds (negative: backward)
+    Q_INVOKABLE void seekBy(int seconds);
+    // from the start of what plays (or plays it again when it ended)
+    Q_INVOKABLE void replay();
+
+    // what plays as the library knows it: a favorite, and the playlist of
+    // the library that the queue holds (empty if none)
+    Q_PROPERTY(bool favorite READ favorite NOTIFY currentMediaChanged FINAL)
+    Q_PROPERTY(QString playlistName READ playlistName NOTIFY currentMediaChanged FINAL)
+    bool favorite() const { return m_favorite; }
+    QString playlistName() const { return m_playlistName; }
+    Q_INVOKABLE void toggleFavorite();
+
+    // The library as folders on the disk ("Videos > Shows > The Wand > S01"):
+    // the folders and media ("video" or "audio") of one of its folders, the
+    // top one when folder is empty; answered with libraryFolderReady():
+    // { url, top, crumbs: [{ name, url }], folders: [{ name, url, count }],
+    //   media: [{ id, url, name, title, thumbnail, progress, playCount, duration }],
+    //   parentId }
+    Q_INVOKABLE void requestLibraryFolder(const QString &kind, const QUrl &folder);
+    // a folder with no media, for the views of the library while waiting
+    Q_INVOKABLE QVariant emptyFolder() const;
+
+    // "Add Subtitles", "From OpenSubtitles": subtitles for a media, made for
+    // the file (by its hash) then by name, in a language ("eng", "fre"...
+    // or "all"): onlineSubtitlesReady() with [{ name, movie, language,
+    // languageId, format, downloads, link, exact }]
+    Q_INVOKABLE void searchOnlineSubtitles(const QUrl &media, const QString &query, const QString &language);
+    // downloaded next to the media and chosen for it: onlineSubtitleDownloaded()
+    Q_INVOKABLE void downloadOnlineSubtitle(const QUrl &media, const QString &link, const QString &languageId,
+                                            const QString &format);
+
 signals:
+    void onlineSubtitlesReady(const QUrl &media, const QString &query, const QVariantList &results,
+                              const QString &error);
+    void onlineSubtitleDownloaded(const QUrl &media, const QUrl &file, const QString &error);
+    void subtitleCuesChanged();
+    void libraryFolderReady(const QString &kind, const QUrl &folder, const QVariantMap &result);
+    void libraryChanged();
+    void currentMediaChanged();
     void revisionChanged();
     void subtitlePresetsChanged();
     void sleepTimerChanged();
@@ -253,7 +319,7 @@ signals:
     void sidebarChanged();
     void resumeTimeChanged();
     void dialogRequested(const QString &name, const QVariant &argument);
-    void folderLocated(const QVariant &parentId, const QString &title);
+    void folderLocated(const QVariant &parentId, const QString &title, const QUrl &url, bool hasVideo);
     void waveformChanged();
     void customizingChanged();
     void mediaInfoChanged();
@@ -301,6 +367,34 @@ private:
     QVariantList m_waveform;
 
     bool m_customizing = false;
+
+    // OpenSubtitles, see player_tweaks_online.cpp
+    struct OnlineJob {
+        std::thread thread;
+        std::shared_ptr<std::atomic_bool> done;
+    };
+    std::vector<OnlineJob> m_onlineThreads;
+    std::shared_ptr<std::atomic_bool> m_onlineAbort;
+    std::shared_ptr<std::atomic_bool> onlineAbort();
+    std::shared_ptr<std::atomic_bool> startOnlineJob();
+    void stopOnline();
+
+    // subtitles inside media, see player_tweaks_cues.cpp
+    QVariantList embeddedSubtitleCues(const QUrl &media);
+    void startEmbeddedCues(const QUrl &media);
+    void stopEmbeddedCues();
+    QHash<QString, QVariantMap> m_embeddedCues;
+    QString m_cueUrl;
+    std::thread m_cueThread;
+    std::shared_ptr<std::atomic_bool> m_cueAbort;
+
+    bool m_libraryVisible = false;
+    QString m_libraryPage = QStringLiteral("folder");
+
+    void updateCurrentMedia();
+    bool m_favorite = false;
+    QString m_playlistName;
+    qint64 m_currentMediaId = -1;
 
     QVariantMap m_mediaInfo;
 

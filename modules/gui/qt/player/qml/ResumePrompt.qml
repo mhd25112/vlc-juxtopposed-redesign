@@ -48,6 +48,10 @@ T.Control {
 
     onShownChanged: lockAutoHide(shown)
 
+    // a template control has no size of its own
+    implicitWidth: implicitContentWidth + leftPadding + rightPadding
+    implicitHeight: Math.max(VLCStyle.dp(52, VLCStyle.scale), implicitContentHeight + topPadding + bottomPadding)
+
     padding: VLCStyle.dp(10, VLCStyle.scale)
     leftPadding: VLCStyle.dp(20, VLCStyle.scale)
 

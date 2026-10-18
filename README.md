@@ -10,8 +10,9 @@ Go watch the video: it explains the reasoning behind every screen far better
 than this page.
 
 This is an unofficial, experimental fork. It is not affiliated with or endorsed
-by Juxtopposed or by VideoLAN. The screenshots below were made with generated
-test media.
+by Juxtopposed or by VideoLAN. The screenshots below show Blender's open
+movies and public-domain music, all under free licenses (see
+[Media in the screenshots](#media-in-the-screenshots)).
 
 ![Home](doc/redesign/home.png)
 
@@ -20,11 +21,14 @@ test media.
 - A rounded navigation panel: Home, Videos, Music, Network, Playlists, Recent
   and "Add item" (a folder, a network stream or a new playlist). Any folder,
   playlist or album can be pinned there ("..." > Pin to Sidebar).
-- **Home**: Continue Watching, Listen Again (title and artist), Frequently
-  Visited Folders, then the newest videos and music.
-- **Videos are the folders on the disk**: *Videos › Shows › The Wand › S01*,
-  each part of the path a step back. A folder holding a single folder is
-  skipped. All the videos, as one list, are in the "..." menu of the header.
+- **Home**: Continue Watching (the videos left part of the way, the last
+  watched first), Listen Again (title and artist), Frequently Visited Folders,
+  then the newest videos and music.
+- **Videos are the folders on the disk**: *Videos › Shows › Caminandes*, each
+  part of the path a step back. A folder holding a single folder is skipped.
+  A folder's card shows pictures of the videos in it (four as a mosaic) and
+  how many there are. All the videos, as one list, are in the "..." menu of the
+  header.
 - A header with back/forward, the path, the item count, sorting (including
   *Unwatched First* and *Watched First*), the grid/list switch, search, "+" and
   "...".
@@ -43,7 +47,7 @@ test media.
   File Explorer, Go to Source, Add Subtitle Tracks, Properties & Metadata.
 
 ![Library, grid and mini player](doc/redesign/library-grid.png)
-![Library, list](doc/redesign/library-list.png)
+![Library, list (Music › Songs) and mini player](doc/redesign/library-list.png)
 ![Videos as folders](doc/redesign/library-folders.png)
 ![Library menu](doc/redesign/library-menu.png)
 
@@ -83,7 +87,7 @@ test media.
   Chapters tabs, and "+" to add files, a folder or a network stream. Ctrl+B
   adds a bookmark where the video is, without a dialog.
 - **Library next to the video**: it slides over the video and opens on the
-  folder of what plays (*... › The Wand › S01*), with a rail for Home, Videos
+  folder of what plays (*Videos › Movies*), with a rail for Home, Videos
   (the folders again), Music (Songs as folders, Albums, Artists, Genres),
   Network, Playlists and Recent. Drag its files to the queue.
 - **Continue watching**: for a video left halfway, "You've watched till
@@ -95,6 +99,7 @@ test media.
 
 ![Player and settings sidebar](doc/redesign/player-sidebar.png)
 ![Waveform, subtitle timeline and metadata](doc/redesign/player-overlays.png)
+![Moving the subtitles on the zoomed timeline](doc/redesign/subtitle-timeline.png)
 ![Seek preview](doc/redesign/seek-preview.png)
 ![Library next to the video](doc/redesign/player-library.png)
 ![Its Home](doc/redesign/player-library-home.png)
@@ -205,6 +210,55 @@ contribs:
   before them, in `vlc.exe` and in `vlc-preparser.exe` (which reads files for the
   media library, the playlist and the thumbnails).
 - OpenSubtitles needs a TLS plugin (`-Dgnutls=enabled`).
+
+## Media in the screenshots
+
+Free media, from Wikimedia Commons. For the screenshots the films were cut to
+clips and the recordings tagged as albums, with the paintings as covers. The
+media files are not in this repository. The screenshots that show these works
+are shared under the same licenses as the works.
+
+Films by the [Blender Foundation](https://studio.blender.org/films/):
+
+- *[Big Buck Bunny](https://commons.wikimedia.org/wiki/File:Big_Buck_Bunny_4K.webm)*
+  (2008), *[Sintel](https://commons.wikimedia.org/wiki/File:Sintel_movie_4K.webm)*
+  (2010) and *[Tears of Steel](https://commons.wikimedia.org/wiki/File:Tears_of_Steel_in_4k_-_Official_Blender_Foundation_release.webm)*
+  (2012): [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). The English
+  subtitles of Sintel are its
+  [timed text on Commons](https://commons.wikimedia.org/wiki/TimedText:Sintel_movie_4K.webm.en.srt).
+- *[Spring](https://commons.wikimedia.org/wiki/File:Spring_-_Blender_Open_Movie.webm)*
+  (2019) and *[Sprite Fright](https://commons.wikimedia.org/wiki/File:Sprite_Fright_-_Blender_Open_Movie-full_movie.webm)*
+  (2021): [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+- *Caminandes*: *[Llama Drama](https://commons.wikimedia.org/wiki/File:Caminandes-_Llama_Drama_-_Short_Movie.ogv)*
+  and *[Llamigos](https://commons.wikimedia.org/wiki/File:Caminandes_3_-_Llamigos_-_Blender_Animated_Short.webm)*:
+  [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/);
+  *[Gran Dillama](https://commons.wikimedia.org/wiki/File:Caminandes_-_Gran_Dillama_-_Blender_Foundation%27s_new_Open_Movie.webm)*:
+  [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/).
+
+Recordings:
+
+- Frédéric Chopin, Nocturnes op. 9 no. 2, op. 15 no. 1 and op. 27 no. 2,
+  played by Patrizia Prati
+  ([1](https://commons.wikimedia.org/wiki/File:Fryderyk_Chopin_-_Nocturne_op._9_n.2_Es-dur_-_Patrizia_Prati.ogg),
+  [2](https://commons.wikimedia.org/wiki/File:Fryderyk_Chopin_-_Nocturne_op._15_n.1_F-dur_-_Patrizia_Prati.ogg),
+  [3](https://commons.wikimedia.org/wiki/File:Fryderyk_Chopin_-_Nocturne_op._27_n.2_Des-dur_-_Patrizia_Prati.ogg)):
+  [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
+- Erik Satie, Gymnopédies 1 to 3, played by Kevin MacLeod
+  ([1](https://commons.wikimedia.org/wiki/File:Kevin_MacLeod_-_Erik_Satie_Gymnopedie_No_1.ogg),
+  [2](https://commons.wikimedia.org/wiki/File:Kevin_MacLeod_-_Erik_Satie_Gymnopedie_No_2.ogg),
+  [3](https://commons.wikimedia.org/wiki/File:Kevin_MacLeod_-_Erik_Satie_Gymnopedie_No_3.ogg)):
+  [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).
+- Ludwig van Beethoven, Moonlight Sonata:
+  [first movement](https://commons.wikimedia.org/wiki/File:Ludwig_van_Beethoven_-_sonata_no._14_in_c_sharp_minor_%27moonlight%27,_op._27_no._2_-_i._adagio_sostenuto.ogg)
+  (Musopen, public domain);
+  [second](https://commons.wikimedia.org/wiki/File:Beethoven_Moonlight_2nd_movement.ogg)
+  and [third](https://commons.wikimedia.org/wiki/File:Beethoven_Moonlight_3rd_movement.ogg)
+  movements: [CC BY-SA 2.0 DE](https://creativecommons.org/licenses/by-sa/2.0/de/deed.en).
+
+Covers, paintings in the public domain: James McNeill Whistler,
+*[Nocturne: Blue and Gold – Old Battersea Bridge](https://commons.wikimedia.org/wiki/File:James_McNeill_Whistler_-_Nocturne_en_bleu_et_or.jpg)*;
+Claude Monet, *[Impression, Sunrise](https://commons.wikimedia.org/wiki/File:Claude_Monet,_Impression,_soleil_levant.jpg)*;
+Caspar David Friedrich, *[Wanderer above the Sea of Fog](https://commons.wikimedia.org/wiki/File:Caspar_David_Friedrich_-_Wanderer_above_the_sea_of_fog.jpg)*.
 
 ## About VLC
 

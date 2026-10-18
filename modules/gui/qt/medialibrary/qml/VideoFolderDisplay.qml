@@ -187,12 +187,14 @@ Widgets.PageExt {
             readonly property real pictureHeight: Math.round(pictureWidth * 9 / 16)
 
             width: view?.width ?? root.width
-            implicitHeight: flow.implicitHeight + (grid ? VLCStyle.dp(24, VLCStyle.scale) : VLCStyle.dp(8, VLCStyle.scale))
+            implicitHeight: flow.y + flow.implicitHeight + (grid ? VLCStyle.dp(24, VLCStyle.scale) : VLCStyle.dp(8, VLCStyle.scale))
 
             Flow {
                 id: flow
 
                 x: header.leftMargin
+                // the space the grid leaves above its first row
+                y: header.grid ? VLCStyle.dp(10, VLCStyle.scale) : 0
                 width: header.width - header.leftMargin - (header.view?.contentRightMargin ?? header.leftMargin)
                 spacing: header.spacing
 
@@ -221,23 +223,14 @@ Widgets.PageExt {
 
                         contentItem: Item {
                             // grid: a card with the folder, its name under it
-                            Rectangle {
+                            FolderPreview {
                                 id: cover
 
                                 visible: header.grid
                                 width: header.pictureWidth
                                 height: header.grid ? header.pictureHeight : 0
-                                radius: VLCStyle.gridCover_radius
-                                color: tile.hovered ? Qt.lighter(PanelStyle.colors(theme.palette?.isDark ?? true).card, 1.6)
-                                                    : ((theme.palette?.isDark ?? true) ? "#1e1e1e" : root._c.card)
-                                Behavior on color { ColorAnimation { duration: 120 } }
-
-                                Widgets.PanelIcon {
-                                    anchors.centerIn: parent
-                                    name: "folder"
-                                    size: VLCStyle.dp(40, VLCStyle.scale)
-                                    color: tile.hovered ? root._c.bright : root._c.label
-                                }
+                                folder: header.grid ? tile.modelData.url : ""
+                                hovered: tile.hovered
                             }
 
                             // list: a line with the folder and its name

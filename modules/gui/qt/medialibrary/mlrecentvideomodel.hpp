@@ -29,10 +29,20 @@ class MLRecentVideoModel : public MLVideoModel
 {
     Q_OBJECT
 
+    // only the videos left part of the way ("Continue Watching"), not the
+    // ones watched to the end or barely started
+    Q_PROPERTY(bool inProgressOnly READ inProgressOnly WRITE setInProgressOnly NOTIFY inProgressOnlyChanged FINAL)
+
 public:
     explicit MLRecentVideoModel(QObject * parent = nullptr);
 
     virtual ~MLRecentVideoModel() = default;
+
+    bool inProgressOnly() const { return m_inProgressOnly; }
+    void setInProgressOnly(bool value);
+
+signals:
+    void inProgressOnlyChanged();
 
 protected: // MLBaseModel implementation
     std::unique_ptr<MLListCacheLoader> createMLLoader() const override;
@@ -41,9 +51,17 @@ protected: // MLVideoModel reimplementation
     void onVlcMlEvent(const MLEvent & event) override;
 
 private:
+    bool m_inProgressOnly = false;
+
     struct Loader : public MLListCacheLoader::MLOp
     {
-        using MLListCacheLoader::MLOp::MLOp;
+        Loader(const MLRecentVideoModel &model)
+            : MLListCacheLoader::MLOp(model), m_inProgressOnly(model.m_inProgressOnly) {}
+
+        bool m_inProgressOnly;
+
+        // the history, filtered when only the videos in progress are wanted
+        std::vector<std::unique_ptr<MLItem>> list(vlc_medialibrary_t* ml, const vlc_ml_query_params_t*) const;
 
         size_t count(vlc_medialibrary_t* ml, const vlc_ml_query_params_t*) const override;
 

@@ -236,8 +236,10 @@ Widgets.PageExt {
                 model: MLRecentVideoModel {
                     ml: MediaLib
 
-                    sortCriteria: root.sort.criteria
-                    sortOrder: root.sort.order
+                    // the last watched first, only the videos left part of
+                    // the way
+                    sortOrder: Qt.DescendingOrder
+                    inProgressOnly: true
                     searchPattern: root.search.pattern
 
                     // FIXME: Make limit 0 load no items, instead of loading all items.
@@ -314,6 +316,8 @@ Widgets.PageExt {
                 model: MLRecentAudioModel {
                     ml: MediaLib
 
+                    // the last heard first
+                    sortOrder: Qt.DescendingOrder
                     searchPattern: root.search.pattern
 
                     // FIXME: Make limit 0 load no items, instead of loading all items.
@@ -380,23 +384,13 @@ Widgets.PageExt {
                         contentItem: Column {
                             spacing: VLCStyle.dp(8, VLCStyle.scale)
 
-                            Rectangle {
+                            // #1E1E1E in the design, with the pictures of the folder
+                            FolderPreview {
                                 width: foldersRow.cardSize
                                 height: foldersRow.cardSize
-                                radius: VLCStyle.gridCover_radius
-                                // #1E1E1E in the design, lighter when hovered
-                                readonly property color rest: (theme.palette?.isDark ?? true) ? "#1e1e1e"
-                                                                                               : PanelStyle.light.card
-                                color: folderCard.hovered ? Qt.lighter(rest, 1.3) : rest
-                                Behavior on color { ColorAnimation { duration: 120 } }
-
-                                Widgets.PanelIcon {
-                                    anchors.centerIn: parent
-                                    name: "folder"
-                                    size: VLCStyle.dp(44, VLCStyle.scale)
-                                    color: folderCard.hovered ? PanelStyle.colors((theme.palette?.isDark ?? true)).bright
-                                                              : PanelStyle.colors((theme.palette?.isDark ?? true)).label
-                                }
+                                folder: folderCard.model.mrl
+                                hovered: folderCard.hovered
+                                iconSize: VLCStyle.dp(44, VLCStyle.scale)
                             }
 
                             Text {

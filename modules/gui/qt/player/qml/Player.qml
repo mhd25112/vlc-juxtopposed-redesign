@@ -1364,7 +1364,9 @@ FocusScope {
 
         anchors.left: playerSpecializationLoader.left
         anchors.top: playerSpecializationLoader.top
+        // beside the library next to the video, moving with it
         anchors.leftMargin: VLCStyle.dp(24, VLCStyle.scale)
+                            + compactLibraryLoader.width * compactLibraryLoader.reveal
         anchors.topMargin: (rootPlayer._controlsUnderVideo ? 0 : topBar.reservedHeight) + VLCStyle.dp(24, VLCStyle.scale)
         z: 2
 

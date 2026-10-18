@@ -1621,12 +1621,26 @@ void PlayerTweaks::requestMediaInfo(const QVariantList &urls)
     if (!p_intf->p_mi || !p_intf->p_mi->getMediaLibrary())
         return;
 
-    QStringList mrls;
-    for (const QVariant &url : urls)
+    // [the key the interface looks for, the MRL of the library]
+    QList<QPair<QString, QString>> mrls;
+    for (const QVariant &value : urls)
     {
-        const QString mrl = url.toUrl().toString(QUrl::FullyEncoded);
-        if (!mrl.isEmpty() && !m_mediaInfo.contains(url.toUrl().toString()))
-            mrls.append(mrl);
+        const QUrl url = value.toUrl();
+        const QString key = url.toString();
+        if (key.isEmpty() || m_mediaInfo.contains(key))
+            continue;
+        // the library spells local files as VLC does, which encodes more
+        // than Qt ("(" and ")" too)
+        QString mrl = url.toString(QUrl::FullyEncoded);
+        if (url.isLocalFile())
+        {
+            if (char *uri = vlc_path2uri(qtu(QDir::toNativeSeparators(url.toLocalFile())), nullptr))
+            {
+                mrl = qfu(uri);
+                free(uri);
+            }
+        }
+        mrls.append({ key, mrl });
     }
     if (mrls.isEmpty())
         return;
@@ -1636,15 +1650,15 @@ void PlayerTweaks::requestMediaInfo(const QVariantList &urls)
     };
     p_intf->p_mi->getMediaLibrary()->runOnMLThread<Ctx>(this,
     [mrls](vlc_medialibrary_t* ml, Ctx& ctx) {
-        for (const QString &mrl : mrls)
+        for (const auto &entry : mrls)
         {
-            vlc_ml_media_t *media = vlc_ml_get_media_by_mrl(ml, qtu(mrl));
+            vlc_ml_media_t *media = vlc_ml_get_media_by_mrl(ml, qtu(entry.second));
             if (!media)
                 continue;
             const vlc_ml_thumbnail_t &thumbnail = media->thumbnails[VLC_ML_THUMBNAIL_SMALL];
             const QString thumbnailMrl = (thumbnail.i_status == VLC_ML_THUMBNAIL_STATUS_AVAILABLE && thumbnail.psz_mrl)
                                          ? qfu(thumbnail.psz_mrl) : QString();
-            ctx.info.insert(QUrl::fromEncoded(mrl.toUtf8()).toString(), QVariantMap {
+            ctx.info.insert(entry.first, QVariantMap {
                 { QStringLiteral("thumbnail"), thumbnailMrl },
                 { QStringLiteral("progress"), media->f_progress },
                 { QStringLiteral("playCount"), media->i_playcount },

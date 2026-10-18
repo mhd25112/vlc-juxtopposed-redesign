@@ -681,9 +681,18 @@ FocusScope {
 
         property var entry: ({})
 
+        // the same file however its address is encoded (VLC encodes "(" and
+        // ")", Qt does not)
+        function _same(a, b) {
+            try {
+                return decodeURIComponent(String(a)) === decodeURIComponent(String(b))
+            } catch (e) {
+                return String(a) === String(b)
+            }
+        }
         readonly property bool playing: entry.kind === "media"
-                                        && ((entry.url !== undefined && String(entry.url) === String(Player.url))
-                                            || (entry.mrl !== undefined && String(entry.mrl) === String(Player.url)))
+                                        && ((entry.url !== undefined && _same(entry.url, Player.url))
+                                            || (entry.mrl !== undefined && _same(entry.mrl, Player.url)))
         readonly property bool picture: root.showPictures && (entry.kind === "media") && !!entry.cover
 
         implicitHeight: VLCStyle.dp(42, VLCStyle.scale)
@@ -859,7 +868,7 @@ FocusScope {
     MLPlaylistListModel { id: playlistModel; ml: MediaLib; searchPattern: root.place.page === "playlists" ? root._search : "" }
     MLRecentMediaModel { id: recentModel; ml: MediaLib; searchPattern: root.place.page === "recent" ? root._search : "" }
 
-    MLRecentVideoModel { id: continueModel; ml: MediaLib; limit: 3 }
+    MLRecentVideoModel { id: continueModel; ml: MediaLib; limit: 3; inProgressOnly: true }
     MLRecentAudioModel { id: listenModel; ml: MediaLib; limit: 3 }
     MLVideoFoldersModel { id: foldersModel; ml: MediaLib; limit: 3 }
     MLPlaylistListModel { id: homePlaylistModel; ml: MediaLib; limit: 3 }

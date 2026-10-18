@@ -21,7 +21,11 @@
 
 // Ctor / dtor
 
-MLRecentAudioModel::MLRecentAudioModel(QObject * parent) : MLAudioModel(parent) {}
+MLRecentAudioModel::MLRecentAudioModel(QObject * parent) : MLAudioModel(parent)
+{
+    // the last heard first
+    setSortOrder(Qt::DescendingOrder);
+}
 
 // Protected MLBaseModel implementation
 

@@ -296,6 +296,9 @@ public:
     //   media: [{ id, url, name, title, thumbnail, progress, playCount, duration }],
     //   parentId }
     Q_INVOKABLE void requestLibraryFolder(const QString &kind, const QUrl &folder);
+    // pictures of the videos in a folder (anywhere below), for its card:
+    // answered with folderPreviewReady()
+    Q_INVOKABLE void requestFolderPreview(const QUrl &folder);
     // a folder with no media, for the views of the library while waiting
     Q_INVOKABLE QVariant emptyFolder() const;
 
@@ -314,6 +317,7 @@ signals:
     void onlineSubtitleDownloaded(const QUrl &media, const QUrl &file, const QString &error);
     void subtitleCuesChanged();
     void libraryFolderReady(const QString &kind, const QUrl &folder, const QVariantMap &result);
+    void folderPreviewReady(const QUrl &folder, const QStringList &thumbnails, int count);
     void libraryChanged();
     void currentMediaChanged();
     void revisionChanged();

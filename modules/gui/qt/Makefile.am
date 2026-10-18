@@ -1224,6 +1224,7 @@ libqml_module_medialibrary_a_QML = \
 	medialibrary/qml/MediaView.qml \
 	medialibrary/qml/VideoGroupDisplay.qml \
 	medialibrary/qml/VideoFolderDisplay.qml \
+	medialibrary/qml/FolderPreview.qml \
 	medialibrary/qml/MusicAlbums.qml \
 	medialibrary/qml/MusicAlbumsDisplay.qml \
 	medialibrary/qml/MusicAlbumsGridExpandDelegate.qml \

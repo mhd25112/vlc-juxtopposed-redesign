@@ -309,6 +309,67 @@ void PlayerTweaks::requestLibraryFolder(const QString &kind, const QUrl &folder)
     });
 }
 
+void PlayerTweaks::requestFolderPreview(const QUrl &folder)
+{
+    if (folder.isEmpty() || !p_intf->p_mi || !p_intf->p_mi->getMediaLibrary())
+        return;
+
+    const QString key = folderKey(folder);
+
+    struct Ctx {
+        QStringList thumbnails;
+        int count = 0;
+    };
+    p_intf->p_mi->getMediaLibrary()->runOnMLThread<Ctx>(this,
+    [key](vlc_medialibrary_t* ml, Ctx& ctx) {
+        // the folders with videos in it, by name
+        QList<QPair<QString, int64_t>> folders;
+        if (vlc_ml_folder_list_t *list = vlc_ml_list_folders_by_type(ml, nullptr, VLC_ML_MEDIA_TYPE_VIDEO))
+        {
+            for (size_t i = 0; i < list->i_nb_items; ++i)
+            {
+                const vlc_ml_folder_t &f = list->p_items[i];
+                if (!f.psz_mrl || f.b_banned)
+                    continue;
+                const QString k = folderKey(QUrl::fromEncoded(f.psz_mrl));
+                if (!k.startsWith(key))
+                    continue;
+                folders.append({ k, f.i_id });
+                ctx.count += f.i_nb_video;
+            }
+            vlc_ml_folder_list_release(list);
+        }
+        std::sort(folders.begin(), folders.end());
+
+        // four pictures at most, made when missing (shown the next time)
+        for (const auto &folder : std::as_const(folders))
+        {
+            vlc_ml_query_params_t params = vlc_ml_query_params_create();
+            params.i_sort = VLC_ML_SORTING_FILENAME;
+            vlc_ml_media_list_t *items = vlc_ml_list_folder_media(ml, &params, folder.second);
+            if (!items)
+                continue;
+            for (size_t i = 0; i < items->i_nb_items && ctx.thumbnails.size() < 4; ++i)
+            {
+                const vlc_ml_media_t &m = items->p_items[i];
+                if (m.i_type != VLC_ML_MEDIA_TYPE_VIDEO)
+                    continue;
+                const vlc_ml_thumbnail_t &thumbnail = m.thumbnails[VLC_ML_THUMBNAIL_SMALL];
+                if (thumbnail.i_status == VLC_ML_THUMBNAIL_STATUS_AVAILABLE && thumbnail.psz_mrl)
+                    ctx.thumbnails.append(qfu(thumbnail.psz_mrl));
+                else if (thumbnail.i_status == VLC_ML_THUMBNAIL_STATUS_MISSING)
+                    vlc_ml_media_generate_thumbnail(ml, m.i_id, VLC_ML_THUMBNAIL_SMALL, 512, 320, 0.3);
+            }
+            vlc_ml_media_list_release(items);
+            if (ctx.thumbnails.size() >= 4)
+                break;
+        }
+    },
+    [this, folder](quint64, Ctx& ctx) {
+        emit folderPreviewReady(folder, ctx.thumbnails, ctx.count);
+    });
+}
+
 QVariant PlayerTweaks::emptyFolder() const
 {
     return QVariant::fromValue(MLItemId(INT64_MAX, VLC_ML_PARENT_FOLDER));

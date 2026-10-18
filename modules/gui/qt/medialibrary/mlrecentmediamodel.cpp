@@ -21,6 +21,8 @@
 MLRecentMediaModel::MLRecentMediaModel( QObject* parent )
     : MLMediaModel( parent )
 {
+    // the last played first
+    setSortOrder(Qt::DescendingOrder);
 }
 
 QVariant MLRecentMediaModel::itemRoleData(const MLItem *item , int role ) const
